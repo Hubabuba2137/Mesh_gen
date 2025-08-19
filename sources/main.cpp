@@ -11,18 +11,14 @@
 #define DARK_GRAY CLITERAL(Color){30,30,30,255}
 
 /*
-//First time build:
-
 mkdir build
 cd build
 cmake ..
 cmake --build .
 ./Debug/mesh_gen.exe
 
-//after that:
 cmake --build .
 ./Debug/mesh_gen.exe
-
 */
 
 int main()
@@ -32,7 +28,7 @@ int main()
     SetTargetFPS(60);
 
     std::vector<go::Node> polygon_nodes;  
-    std::vector<go::Vertex> mesh;
+    std::vector<go::Node> nodes;
 
     bool mesh_created = false;
 
@@ -45,7 +41,7 @@ int main()
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
             if(mesh_created){
                 polygon_nodes.clear();
-                mesh.clear();
+                nodes.clear();
                 mesh_created = false;
             }
 
@@ -58,7 +54,7 @@ int main()
         if(IsKeyPressed(KEY_ENTER)){
             mesh_created = true;
             go::Vertex polygon(polygon_nodes);
-            mesh = meshing(polygon, spacing);
+            nodes = creating_nodes(polygon, spacing);
 
 
             polygon_nodes.clear();
@@ -69,7 +65,7 @@ int main()
             it.draw();
         }
         
-        for(auto&it:mesh){
+        for(auto&it:nodes){
             it.draw();
         }
         

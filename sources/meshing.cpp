@@ -255,7 +255,7 @@ std::vector<go::Vertex> make_quads(std::vector<go::Vertex> &init_triangles){
     return quads;
 }
 
-std::vector<go::Vertex> meshing(go::Vertex polygon, float spacing){
+std::vector<go::Node> creating_nodes(go::Vertex polygon, float spacing){
     std::vector<go::Vertex> triangles = ear_cut_triangulation(polygon);
     std::vector<go::Vertex> quads = make_quads(triangles);
 
@@ -266,15 +266,14 @@ std::vector<go::Vertex> meshing(go::Vertex polygon, float spacing){
 
     int N = (int)L/spacing;
 
-    std::vector<go::Vertex> result;
+    std::vector<go::Node> result;
     for(auto &quad: quads){
         //creating internal points
         std::vector<go::Node> edge_0_nodes = add_boundary_nodes_on_edge(quad.edges[0], N);
         std::vector<go::Node> edge_2_nodes = add_boundary_nodes_on_edge(quad.edges[2], N);
 
-        std::vector<std::vector<go::Node>> quad_nodes;
         std::vector<go::Node> temp_nodes;
-        quad_nodes.reserve(edge_0_nodes.size());
+        
         for(size_t i = 0; i < edge_0_nodes.size(); i++) {
             remove_duplicate_nodes(edge_0_nodes);
             remove_duplicate_nodes(edge_2_nodes);
@@ -286,21 +285,8 @@ std::vector<go::Vertex> meshing(go::Vertex polygon, float spacing){
         
             temp_nodes = add_boundary_nodes_on_edge(seg, N);
             
-            quad_nodes.push_back(temp_nodes);
-        }
-
-
-        //creating quad elements
-        for(size_t row =0; row<quad_nodes.size()-1; row++){
-            for(size_t col = 0; col<quad_nodes[row].size()-1; col++){
-                std::vector<go::Node> quad_vertices = {
-                    quad_nodes[row][col],
-                    quad_nodes[row][col+1],
-                    quad_nodes[row+1][col+1],
-                    quad_nodes[row+1][col]
-                };
-                go::Vertex temp_quad(quad_vertices);
-                result.push_back(temp_quad);
+            for(auto&node:temp_nodes){
+                result.push_back(node);
             }
         }
     }

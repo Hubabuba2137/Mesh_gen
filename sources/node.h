@@ -22,7 +22,7 @@ namespace go{
         Node();
         void draw();
         void draw(float scale);
-        void Node::draw(Color color);
+        void draw(Color color);
 
         void move(Vector2 vec);
         void change_color(Color new_color);

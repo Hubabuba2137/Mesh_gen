@@ -11,12 +11,14 @@
 #define DARK_GRAY CLITERAL(Color){30,30,30,255}
 
 /*
+First time build:
 mkdir build
 cd build
 cmake ..
 cmake --build .
 ./Debug/mesh_gen.exe
 
+After that:
 cmake --build .
 ./Debug/mesh_gen.exe
 */

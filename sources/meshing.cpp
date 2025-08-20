@@ -194,6 +194,7 @@ bool have_same_side(go::Vertex v1, go::Vertex v2){
     return false;
 }
 
+
 std::vector<go::Vertex> make_quads(std::vector<go::Vertex> &init_triangles){
     std::vector<go::Vertex> triangles = init_triangles;
     std::vector<go::Vertex> quads;
@@ -201,64 +202,70 @@ std::vector<go::Vertex> make_quads(std::vector<go::Vertex> &init_triangles){
     int max_iter = 100;
     int iter = 0;
 
-    /*
-    while(!triangles.empty() && iter < max_iter){
-        iter++;
-        go::Vertex tr1 = triangles[0];
-        go::Vertex tr2 = triangles[1];
-
-        if(have_same_side(tr1, tr2)){
-            std::vector<go::Node> temp_nodes;
-            for(auto&node_1: tr1.vertices){
-                temp_nodes.push_back(node_1);
-            }
-            for(auto&node_2: tr2.vertices){
-                temp_nodes.push_back(node_2);
-            }
-
-            remove_duplicate_nodes(temp_nodes);
-
-            if(temp_nodes.size() == 4){
-                go::Vertex temp_quad(temp_nodes);
-                quads.push_back(temp_quad);
-
-                triangles.erase(triangles.begin());
-                triangles.erase(triangles.begin());
+    if(triangles.size()%2==0){
+        //łączenie trójkątów w czworokąty
+        while(!triangles.empty() && iter < max_iter){
+            iter++;
+            go::Vertex tr1 = triangles[0];
+            go::Vertex tr2 = triangles[1];
+    
+            if(have_same_side(tr1, tr2)){
+                std::vector<go::Node> temp_nodes;
+                for(auto&node_1: tr1.vertices){
+                    temp_nodes.push_back(node_1);
+                }
+                for(auto&node_2: tr2.vertices){
+                    temp_nodes.push_back(node_2);
+                }
+    
+                remove_duplicate_nodes(temp_nodes);
+    
+                if(temp_nodes.size() == 4){
+                    go::Vertex temp_quad(temp_nodes);
+                    quads.push_back(temp_quad);
+    
+                    triangles.erase(triangles.begin());
+                    triangles.erase(triangles.begin());
+                }
             }
         }
-    }*/
-
-    for(auto&triangle:triangles){
-        go::Node n1 = triangle.vertices[0];
-        go::Node n2 = triangle.vertices[1];
-        go::Node n3 = triangle.vertices[2];
-
-        go::Node center((n1.pos.x+ n2.pos.x+n3.pos.x)/3,(n1.pos.y+ n2.pos.y+n3.pos.y)/3);
-
-        go::Node n4((n1.pos.x+n2.pos.x)/2,(n1.pos.y+n2.pos.y)/2);
-        go::Node n5((n2.pos.x+n3.pos.x)/2,(n2.pos.y+n3.pos.y)/2);
-        go::Node n6((n3.pos.x+n1.pos.x)/2,(n3.pos.y+n1.pos.y)/2);
-
-        std::vector<go::Node> vert1_ns = {n1, n4, center, n6};
-        std::vector<go::Node> vert2_ns = {n4, n2, n5, center};
-        std::vector<go::Node> vert3_ns = {n5, n3, n6, center};
-
-        go::Vertex vert1(vert1_ns);
-        go::Vertex vert2(vert2_ns);
-        go::Vertex vert3(vert3_ns);
-
-        quads.push_back(vert1);
-        quads.push_back(vert2);
-        quads.push_back(vert3);
     }
+    else{
+        for(auto&triangle:triangles){
+            go::Node n1 = triangle.vertices[0];
+            go::Node n2 = triangle.vertices[1];
+            go::Node n3 = triangle.vertices[2];
+    
+            go::Node center((n1.pos.x+ n2.pos.x+n3.pos.x)/3,(n1.pos.y+ n2.pos.y+n3.pos.y)/3);
+    
+            go::Node n4((n1.pos.x+n2.pos.x)/2,(n1.pos.y+n2.pos.y)/2);
+            go::Node n5((n2.pos.x+n3.pos.x)/2,(n2.pos.y+n3.pos.y)/2);
+            go::Node n6((n3.pos.x+n1.pos.x)/2,(n3.pos.y+n1.pos.y)/2);
+    
+            std::vector<go::Node> vert1_ns = {n1, n4, center, n6};
+            std::vector<go::Node> vert2_ns = {n4, n2, n5, center};
+            std::vector<go::Node> vert3_ns = {n5, n3, n6, center};
+    
+            go::Vertex vert1(vert1_ns);
+            go::Vertex vert2(vert2_ns);
+            go::Vertex vert3(vert3_ns);
+    
+            quads.push_back(vert1);
+            quads.push_back(vert2);
+            quads.push_back(vert3);
+        }
+    }
+
 
     return quads;
 }
 
+
 std::vector<go::Node> creating_nodes(go::Vertex polygon, float spacing){
     std::vector<go::Vertex> triangles = ear_cut_triangulation(polygon);
+    
     std::vector<go::Vertex> quads = make_quads(triangles);
-
+    
     float L=0;
     for(auto&edge:polygon.edges){
         L+=edge.len();

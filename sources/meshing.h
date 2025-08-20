@@ -25,4 +25,4 @@ std::vector<go::Vertex> ear_cut_triangulation(const go::Vertex& polygon);
 bool is_node_same(go::Node n1, go::Node n2);
 bool have_same_side(go::Vertex v1, go::Vertex v2);
 std::vector<go::Vertex> make_quads(std::vector<go::Vertex> &init_triangles);
-std::vector<go::Node> creating_nodes(go::Vertex polygon, float spacing)
+std::vector<go::Node> creating_nodes(go::Vertex polygon, float spacing);

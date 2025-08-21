@@ -387,34 +387,29 @@ inline bool same_edge(const go::Segment& e1, const go::Segment& e2) {
            (is_node_same(e1.tab[0], e2.tab[1]) && is_node_same(e1.tab[1], e2.tab[0]));
 }
 
-// Optimized boundary edge detection
 bool is_boundary_edge(const go::Segment& edge, const std::vector<go::Triangle>& bad_triangles) {
     int count = 0;
     for (const auto& triangle : bad_triangles) {
         for (const auto& tri_edge : triangle.edges) {
             if (same_edge(edge, tri_edge)) {
                 count++;
-                if (count > 1) return false; // Early exit optimization
+                if (count > 1) return false;
             }
         }
     }
     return count == 1;
 }
-
-// Main optimized Bowyer-Watson algorithm
 std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list) {
     if (node_list.empty()) {
         return {};
     }
 
     std::vector<go::Triangle> triangulation;
-    triangulation.reserve(2 * node_list.size()); // Pre-allocate memory
+    triangulation.reserve(2 * node_list.size());
 
-    // Create super triangle
     go::Triangle super = super_trian(node_list);
     triangulation.push_back(super);
 
-    // Pre-allocate vectors to avoid repeated allocations
     std::vector<go::Triangle> bad_triangles;
     std::vector<go::Segment> polygon;
     bad_triangles.reserve(triangulation.capacity() / 4);
@@ -423,7 +418,6 @@ std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list) {
     for (go::Node& node : node_list) {
         bad_triangles.clear();
         
-        // Find bad triangles
         for (go::Triangle& triangle : triangulation) {
             if (inside_circumcircle(triangle, node)) {
                 bad_triangles.push_back(triangle);
@@ -431,10 +425,9 @@ std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list) {
         }
         
         if (bad_triangles.empty()) {
-            continue; // Skip if no bad triangles found
+            continue;
         }
 
-        // Find boundary edges more efficiently
         polygon.clear();
         for (const go::Triangle& bad_tr : bad_triangles) {
             for (const go::Segment& edge : bad_tr.edges) {
@@ -444,7 +437,6 @@ std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list) {
             }
         }
 
-        // Remove bad triangles efficiently using partition
         auto new_end = std::remove_if(triangulation.begin(), triangulation.end(),
             [&bad_triangles](const go::Triangle& tr) {
                 for (const go::Triangle& bad_tr : bad_triangles) {
@@ -454,16 +446,15 @@ std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list) {
                 }
                 return false;
             });
+
         triangulation.erase(new_end, triangulation.end());
 
-        // Add new triangles
         triangulation.reserve(triangulation.size() + polygon.size());
         for (const go::Segment& edge : polygon) {
             triangulation.emplace_back(edge.tab[0], edge.tab[1], node);
         }
     }
 
-    // Remove triangles connected to super triangle vertices
     std::vector<go::Triangle> final_triangulation;
     final_triangulation.reserve(triangulation.size());
     

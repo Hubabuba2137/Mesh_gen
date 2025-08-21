@@ -2,7 +2,7 @@
 
 #include "geometry.h"
 #include "meshing.h"
-#include "triangle.h"
+
 #include <vector>
 
 #define SCREEN_WIDTH (1280)
@@ -63,7 +63,7 @@ int main()
             go::Vertex polygon(polygon_nodes);
             nodes = creating_nodes(polygon, spacing);
             triangles = bowyer_watson(nodes);
-            std::cout<<"triagnles size = "<<triangles.size()<<"\n";
+            std::cout<<triangles.size()<<"\n";
 
             polygon_nodes.clear();
         }

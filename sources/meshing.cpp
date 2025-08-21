@@ -8,8 +8,7 @@
 #include <unordered_set>
 
 #include "geometry.h"
-#include "segment.h"
-#include "triangle.h"
+
 #include "meshing.h"
 
 

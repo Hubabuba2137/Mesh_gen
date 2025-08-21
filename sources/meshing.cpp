@@ -8,7 +8,11 @@
 #include <unordered_set>
 
 #include "geometry.h"
+#include "segment.h"
+#include "triangle.h"
 #include "meshing.h"
+
+
 
 std::vector<go::Node> add_boundary_nodes_on_edge(go::Segment seg, int N){
     go::Node A = seg.tab[0];
@@ -298,4 +302,178 @@ std::vector<go::Node> creating_nodes(go::Vertex polygon, float spacing){
         }
     }
     return result;
+}
+
+go::Triangle super_trian(std::vector<go::Node> &node_list){
+    float max_x, max_y, min_x, min_y;
+    
+    max_x = node_list[0].pos.x;
+    max_y = node_list[0].pos.y;
+    min_x = node_list[0].pos.x;
+    min_y = node_list[0].pos.y;
+    for(auto&it:node_list){
+        if(it.pos.x > max_x){
+            max_x = it.pos.x;
+        }
+
+        if(it.pos.x < min_x){
+            min_x = it.pos.x;
+        }
+
+        if(it.pos.y > max_y){
+            max_y = it.pos.y;
+        }
+
+        if(it.pos.y < min_y){
+            min_y = it.pos.y;
+        }
+    }
+
+    float w = max_x - min_x;
+    float h = max_y - min_y;
+
+    go::Node p1(min_x - w*0.1f, min_y-h);
+    go::Node p2(min_x+w*1.7f, min_y+h*0.5f);
+    go::Node p3(min_x-w*0.1f, min_y+h*2.0f);
+
+    go::Triangle super_triangle(p1, p2, p3);
+    return super_triangle;
+}
+
+bool inside_circumcircle(go::Triangle &triangle, go::Node &point){
+    Vector2 A = triangle.points[0].pos;
+    Vector2 B = triangle.points[1].pos;
+    Vector2 C = triangle.points[2].pos;
+    Vector2 D = point.pos;
+
+    double adx = A.x - D.x;
+    double ady = A.y - D.y;
+    double bdx = B.x - D.x;
+    double bdy = B.y - D.y;
+    double cdx = C.x - D.x;
+    double cdy = C.y - D.y;
+
+    double bcdet = bdx * cdy - bdy * cdx;
+    double cadet = cdx * ady - cdy * adx;
+    double abdet = adx * bdy - ady * bdx;
+
+    double alift = adx * adx + ady * ady;
+    double blift = bdx * bdx + bdy * bdy;
+    double clift = cdx * cdx + cdy * cdy;
+
+    double det = alift * bcdet + blift * cadet + clift * abdet;
+
+    double area_ABC = (B.x - A.x) * (C.y - A.y) - (C.x - A.x) * (B.y - A.y);
+
+    if (area_ABC == 0.0) {
+        return false;
+    }
+
+    return (det * area_ABC > 0);
+}
+
+bool edge_is_not_shared(go::Segment &edge, go::Triangle triangle){
+    int i=0;
+    for(go::Node &tr_point:triangle.points){
+        for(go::Node &e:edge.tab){
+            int n=0;
+            if(is_node_same(e, tr_point)){
+                n++;
+            }
+
+            if(n==2){
+                i++;
+            }
+        }
+    }
+
+    if(i==0){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+bool same_triangle(go::Triangle tr1, go::Triangle tr2){
+    int i=0;
+
+    for(auto&node_1: tr1.points){
+        for(auto& node_2: tr2.points){
+            if(is_node_same(node_1, node_2)){
+                i++;
+            }
+
+            if(i==3){
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+std::vector<go::Triangle> bowyer_watson(std::vector<go::Node> &node_list){
+    std::vector<go::Triangle> triangulation;
+
+    go::Triangle super = super_trian(node_list);
+    triangulation.push_back(super);
+
+    for(go::Node &node:node_list){
+        std::vector<go::Triangle> bad_triangles;
+
+        for(go::Triangle &triangle:triangulation){
+            if(inside_circumcircle(triangle, node)){
+                bad_triangles.push_back(triangle);
+            }
+        }
+
+        std::vector<go::Segment> polygon;
+
+        for(go::Triangle &bad_tr:bad_triangles){
+            for(go::Segment &edge:bad_tr.edges){
+                if(edge_is_not_shared(edge, bad_tr)){
+                    polygon.push_back(edge);
+                }
+            }
+        }
+        
+        //removing bad triangles from triangulation
+        std::vector<go::Triangle> temp_triangulation;
+        for(go::Triangle &bad_tr: bad_triangles){
+            for(go::Triangle &tr: triangulation){
+                if(!same_triangle(bad_tr, tr)){
+                    temp_triangulation.push_back(tr);
+                }
+            }
+        }
+
+        triangulation = temp_triangulation;
+        //retriangulate the polygonal hole
+        for(go::Segment &edge:polygon){
+            go::Triangle temp(edge.tab[0], edge.tab[1], node);
+            triangulation.push_back(temp);
+        }
+    }
+
+    //remove vertices from originall super triangle
+    std::vector<go::Triangle> final_triangulation;
+    for(go::Triangle &tr:triangulation){
+        if(!is_node_same(tr.points[0], super.points[0])
+        && !is_node_same(tr.points[0], super.points[1])
+        && !is_node_same(tr.points[0], super.points[2])
+
+        && !is_node_same(tr.points[1], super.points[0])
+        && !is_node_same(tr.points[1], super.points[1])
+        && !is_node_same(tr.points[1], super.points[2])
+
+        && !is_node_same(tr.points[2], super.points[0])
+        && !is_node_same(tr.points[2], super.points[1])
+        && !is_node_same(tr.points[2], super.points[2])
+        ){
+            final_triangulation.push_back((tr));
+        }
+    }
+
+    return final_triangulation;
 }

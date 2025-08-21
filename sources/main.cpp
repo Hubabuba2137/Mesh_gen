@@ -2,6 +2,8 @@
 
 #include "geometry.h"
 #include "meshing.h"
+#include "triangle.h"
+#include <vector>
 
 #define SCREEN_WIDTH (1280)
 #define SCREEN_HEIGHT (720)
@@ -32,6 +34,8 @@ int main()
     std::vector<go::Node> polygon_nodes;  
     std::vector<go::Node> nodes;
 
+    std::vector<go::Triangle> triangles;
+
     bool mesh_created = false;
 
     while (!WindowShouldClose())
@@ -44,6 +48,7 @@ int main()
             if(mesh_created){
                 polygon_nodes.clear();
                 nodes.clear();
+                triangles.clear();
                 mesh_created = false;
             }
 
@@ -57,6 +62,7 @@ int main()
             mesh_created = true;
             go::Vertex polygon(polygon_nodes);
             nodes = creating_nodes(polygon, spacing);
+            triangles = bowyer_watson(nodes);
 
 
             polygon_nodes.clear();
@@ -70,7 +76,11 @@ int main()
         for(auto&it:nodes){
             it.draw();
         }
-        
+
+        for(auto&it:triangles){
+            it.draw();
+        }
+
         EndDrawing();
     }
 

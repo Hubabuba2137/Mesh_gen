@@ -372,106 +372,104 @@ bool inside_circumcircle(go::Triangle &triangle, go::Node &point){
     return (det * area_ABC > 0);
 }
 
-bool edge_is_not_shared(go::Segment &edge, go::Triangle triangle){
-    int i=0;
-    for(go::Node &tr_point:triangle.points){
-        for(go::Node &e:edge.tab){
-            int n=0;
-            if(is_node_same(e, tr_point)){
-                n++;
-            }
+bool same_edge(const go::Segment& e1, const go::Segment& e2) {
+    return (is_node_same(e1.tab[0], e2.tab[0]) && is_node_same(e1.tab[1], e2.tab[1])) ||
+           (is_node_same(e1.tab[0], e2.tab[1]) && is_node_same(e1.tab[1], e2.tab[0]));
+}
 
-            if(n==2){
-                i++;
+bool is_boundary_edge(const go::Segment& edge, const std::vector<go::Triangle>& bad_triangles) {
+    int count = 0;
+    for (const auto& triangle : bad_triangles) {
+        for (const auto& tri_edge : triangle.edges) {
+            if (same_edge(edge, tri_edge)) {
+                count++;
+                break; 
             }
         }
     }
-
-    if(i==0){
-        return true;
-    }
-    else{
-        return false;
-    }
+    return count == 1; 
 }
 
-bool same_triangle(go::Triangle tr1, go::Triangle tr2){
-    int i=0;
-
-    for(auto&node_1: tr1.points){
-        for(auto& node_2: tr2.points){
-            if(is_node_same(node_1, node_2)){
-                i++;
-            }
-
-            if(i==3){
-                return true;
+bool same_triangle(go::Triangle tr1, go::Triangle tr2) {
+    int matches = 0;
+    
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (is_node_same(tr1.points[i], tr2.points[j])) {
+                matches++;
+                break;
             }
         }
     }
-
-    return false;
+    
+    return matches == 3;
 }
 
-std::vector<go::Triangle> bowyer_watson(std::vector<go::Node> &node_list){
+std::vector<go::Triangle> bowyer_watson(std::vector<go::Node> &node_list) {
     std::vector<go::Triangle> triangulation;
 
+    // Create super triangle
     go::Triangle super = super_trian(node_list);
     triangulation.push_back(super);
 
-    for(go::Node &node:node_list){
+    for (go::Node &node : node_list) {
         std::vector<go::Triangle> bad_triangles;
 
-        for(go::Triangle &triangle:triangulation){
-            if(inside_circumcircle(triangle, node)){
+        // Find all triangles whose circumcircle contains the point
+        for (go::Triangle &triangle : triangulation) {
+            if (inside_circumcircle(triangle, node)) {
                 bad_triangles.push_back(triangle);
             }
         }
 
+        // Find the boundary of the polygonal hole
         std::vector<go::Segment> polygon;
-
-        for(go::Triangle &bad_tr:bad_triangles){
-            for(go::Segment &edge:bad_tr.edges){
-                if(edge_is_not_shared(edge, bad_tr)){
+        for (const go::Triangle &bad_tr : bad_triangles) {
+            for (const go::Segment &edge : bad_tr.edges) {
+                if (is_boundary_edge(edge, bad_triangles)) {
                     polygon.push_back(edge);
                 }
             }
         }
-        
-        //removing bad triangles from triangulation
-        std::vector<go::Triangle> temp_triangulation;
-        for(go::Triangle &bad_tr: bad_triangles){
-            for(go::Triangle &tr: triangulation){
-                if(!same_triangle(bad_tr, tr)){
-                    temp_triangulation.push_back(tr);
-                }
-            }
-        }
 
-        triangulation = temp_triangulation;
-        //retriangulate the polygonal hole
-        for(go::Segment &edge:polygon){
-            go::Triangle temp(edge.tab[0], edge.tab[1], node);
-            triangulation.push_back(temp);
+        // Remove bad triangles from triangulation
+        triangulation.erase(
+            std::remove_if(triangulation.begin(), triangulation.end(),
+                [&bad_triangles](const go::Triangle& tr) {
+                    for (const go::Triangle& bad_tr : bad_triangles) {
+                        if (same_triangle(tr, bad_tr)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }),
+            triangulation.end()
+        );
+
+        // Retriangulate the polygonal hole
+        for (const go::Segment &edge : polygon) {
+            go::Triangle new_triangle(edge.tab[0], edge.tab[1], node);
+            triangulation.push_back(new_triangle);
         }
     }
 
-    //remove vertices from originall super triangle
+    // Remove triangles that share vertices with the super triangle
     std::vector<go::Triangle> final_triangulation;
-    for(go::Triangle &tr:triangulation){
-        if(!is_node_same(tr.points[0], super.points[0])
-        && !is_node_same(tr.points[0], super.points[1])
-        && !is_node_same(tr.points[0], super.points[2])
-
-        && !is_node_same(tr.points[1], super.points[0])
-        && !is_node_same(tr.points[1], super.points[1])
-        && !is_node_same(tr.points[1], super.points[2])
-
-        && !is_node_same(tr.points[2], super.points[0])
-        && !is_node_same(tr.points[2], super.points[1])
-        && !is_node_same(tr.points[2], super.points[2])
-        ){
-            final_triangulation.push_back((tr));
+    for (const go::Triangle &tr : triangulation) {
+        bool shares_super_vertex = false;
+        
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (is_node_same(tr.points[i], super.points[j])) {
+                    shares_super_vertex = true;
+                    break;
+                }
+            }
+            if (shares_super_vertex) break;
+        }
+        
+        if (!shares_super_vertex) {
+            final_triangulation.push_back(tr);
         }
     }
 

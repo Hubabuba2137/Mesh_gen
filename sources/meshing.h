@@ -29,6 +29,7 @@ std::vector<go::Node> creating_nodes(go::Vertex polygon, float spacing);
 
 go::Triangle super_trian(std::vector<go::Node> &node_list);
 bool inside_circumcircle(go::Triangle &triangle, go::Node &point);
-bool edge_is_not_shared(go::Segment &edge, go::Triangle triangle);
+bool same_edge(const go::Segment& e1, const go::Segment& e2);
+bool is_boundary_edge(const go::Segment& edge, const std::vector<go::Triangle>& bad_triangles);
 bool same_triangle(go::Triangle tr1, go::Triangle tr2);
 std::vector<go::Triangle> bowyer_watson(std::vector<go::Node> &node_list);

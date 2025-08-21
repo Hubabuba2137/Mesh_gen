@@ -63,7 +63,7 @@ int main()
             go::Vertex polygon(polygon_nodes);
             nodes = creating_nodes(polygon, spacing);
             triangles = bowyer_watson(nodes);
-
+            std::cout<<"triagnles size = "<<triangles.size()<<"\n";
 
             polygon_nodes.clear();
         }

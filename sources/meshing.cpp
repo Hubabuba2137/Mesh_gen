@@ -194,6 +194,22 @@ bool have_same_side(go::Vertex v1, go::Vertex v2){
     return false;
 }
 
+bool have_same_side(go::Triangle v1, go::Triangle v2){
+
+    for(auto&it:v1.edges){
+        for(auto&that:v2.edges){
+            if(is_node_same(it.tab[0], that.tab[0])||
+            is_node_same(it.tab[0], that.tab[1])||
+            is_node_same(it.tab[1], that.tab[0])||
+            is_node_same(it.tab[1], that.tab[1])){
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 
 std::vector<go::Vertex> make_quads(std::vector<go::Vertex> &init_triangles){
     std::vector<go::Vertex> triangles = init_triangles;
@@ -259,6 +275,72 @@ std::vector<go::Vertex> make_quads(std::vector<go::Vertex> &init_triangles){
 
     return quads;
 }
+
+std::vector<go::Vertex> make_quads(std::vector<go::Triangle> &init_triangles){
+    std::vector<go::Triangle> triangles = init_triangles;
+    std::vector<go::Vertex> quads;
+
+    int max_iter = 100;
+    int iter = 0;
+
+    if(triangles.size()%2==0){
+        //łączenie trójkątów w czworokąty
+        while(!triangles.empty() && iter < max_iter){
+            iter++;
+            go::Triangle tr1 = triangles[0];
+            go::Triangle tr2 = triangles[1];
+    
+            if(have_same_side(tr1, tr2)){
+                std::vector<go::Node> temp_nodes;
+                for(auto&node_1: tr1.points){
+                    temp_nodes.push_back(node_1);
+                }
+                for(auto&node_2: tr2.points){
+                    temp_nodes.push_back(node_2);
+                }
+    
+                remove_duplicate_nodes(temp_nodes);
+    
+                if(temp_nodes.size() == 4){
+                    go::Vertex temp_quad(temp_nodes);
+                    quads.push_back(temp_quad);
+    
+                    triangles.erase(triangles.begin());
+                    triangles.erase(triangles.begin());
+                }
+            }
+        }
+    }
+    else{
+        for(auto&triangle:triangles){
+            go::Node n1 = triangle.points[0];
+            go::Node n2 = triangle.points[1];
+            go::Node n3 = triangle.points[2];
+    
+            go::Node center((n1.pos.x+ n2.pos.x+n3.pos.x)/3,(n1.pos.y+ n2.pos.y+n3.pos.y)/3);
+    
+            go::Node n4((n1.pos.x+n2.pos.x)/2,(n1.pos.y+n2.pos.y)/2);
+            go::Node n5((n2.pos.x+n3.pos.x)/2,(n2.pos.y+n3.pos.y)/2);
+            go::Node n6((n3.pos.x+n1.pos.x)/2,(n3.pos.y+n1.pos.y)/2);
+    
+            std::vector<go::Node> vert1_ns = {n1, n4, center, n6};
+            std::vector<go::Node> vert2_ns = {n4, n2, n5, center};
+            std::vector<go::Node> vert3_ns = {n5, n3, n6, center};
+    
+            go::Vertex vert1(vert1_ns);
+            go::Vertex vert2(vert2_ns);
+            go::Vertex vert3(vert3_ns);
+    
+            quads.push_back(vert1);
+            quads.push_back(vert2);
+            quads.push_back(vert3);
+        }
+    }
+
+
+    return quads;
+}
+
 
 
 std::vector<go::Node> creating_nodes(go::Vertex polygon, float spacing){
@@ -399,6 +481,24 @@ bool is_boundary_edge(const go::Segment& edge, const std::vector<go::Triangle>& 
     }
     return count == 1;
 }
+
+void filter_triangles(std::vector<go::Triangle> &triangles, go::Vertex &polygon){
+    std::vector<go::Triangle> temp_triangles;
+    temp_triangles.reserve(triangles.size());
+
+    for(auto &tr:triangles){
+        float cent_x = (tr.points[0].pos.x + tr.points[1].pos.x + tr.points[2].pos.x)/3;
+        float cent_y = (tr.points[0].pos.y + tr.points[1].pos.y + tr.points[2].pos.y)/3;
+
+        go::Node ccentroid(cent_x, cent_y);
+        if(polygon.is_node_inside(ccentroid)){
+            temp_triangles.push_back(tr);
+        }
+    }
+
+    triangles = temp_triangles;
+}
+
 std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list) {
     if (node_list.empty()) {
         return {};
@@ -477,3 +577,22 @@ std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list) {
 
     return final_triangulation;
 }
+
+std::vector<go::Vertex> create_mesh(go::Vertex polygon, float spacing){
+    //interpoalting nodes
+    std::vector<go::Node> nodes = creating_nodes(polygon, spacing);
+
+    //creating triangle mesh with delonay triangulation
+    std::vector<go::Triangle> triangles = bowyer_watson(nodes);
+
+    //filtering triangles outside polygon
+    filter_triangles(triangles, polygon);
+
+    //connecting triangles into quads
+    std::vector<go::Vertex> mesh = make_quads(triangles);
+
+    return mesh;
+}
+
+//-----------------Paving algorithm----------------------
+

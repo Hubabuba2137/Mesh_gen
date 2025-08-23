@@ -182,10 +182,8 @@ bool have_same_side(go::Vertex v1, go::Vertex v2){
 
     for(auto&it:v1.edges){
         for(auto&that:v2.edges){
-            if(is_node_same(it.tab[0], that.tab[0])||
-            is_node_same(it.tab[0], that.tab[1])||
-            is_node_same(it.tab[1], that.tab[0])||
-            is_node_same(it.tab[1], that.tab[1])){
+            if((is_node_same(it.tab[0], that.tab[0]) && is_node_same(it.tab[1], that.tab[1])) ||
+                (is_node_same(it.tab[0], that.tab[1]) && is_node_same(it.tab[1], that.tab[0]))) {
                 return true;
             }
         }
@@ -198,10 +196,8 @@ bool have_same_side(go::Triangle v1, go::Triangle v2){
 
     for(auto&it:v1.edges){
         for(auto&that:v2.edges){
-            if(is_node_same(it.tab[0], that.tab[0])||
-            is_node_same(it.tab[0], that.tab[1])||
-            is_node_same(it.tab[1], that.tab[0])||
-            is_node_same(it.tab[1], that.tab[1])){
+            if((is_node_same(it.tab[0], that.tab[0]) && is_node_same(it.tab[1], that.tab[1])) ||
+                (is_node_same(it.tab[0], that.tab[1]) && is_node_same(it.tab[1], that.tab[0]))) {
                 return true;
             }
         }
@@ -210,71 +206,73 @@ bool have_same_side(go::Triangle v1, go::Triangle v2){
     return false;
 }
 
+//---------------------------------------------------------------------
+//graph structure o represent triangles connections
+void Graph::print()
+{
+    int n = adj_mat.size();
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                std::cout << adj_mat[i][j] << " ";
+            }
+            std::cout << "\n";
+        }
+}
 
-std::vector<go::Vertex> make_quads(std::vector<go::Vertex> &init_triangles){
-    std::vector<go::Vertex> triangles = init_triangles;
-    std::vector<go::Vertex> quads;
+void Graph::print_clist()
+{
+    for(int i=0; i<connection_list.size(); i++){
+        std::cout<<i<<": "<<connection_list[i]<<"\n";
+    }
+}
 
-    int max_iter = 100;
-    int iter = 0;
+std::vector<int> count_neighbours(std::vector<go::Triangle> triangles) {
+    std::vector<int> count(triangles.size(), 0);
 
-    if(triangles.size()%2==0){
-        //łączenie trójkątów w czworokąty
-        while(!triangles.empty() && iter < max_iter){
-            iter++;
-            go::Vertex tr1 = triangles[0];
-            go::Vertex tr2 = triangles[1];
-    
-            if(have_same_side(tr1, tr2)){
-                std::vector<go::Node> temp_nodes;
-                for(auto&node_1: tr1.vertices){
-                    temp_nodes.push_back(node_1);
-                }
-                for(auto&node_2: tr2.vertices){
-                    temp_nodes.push_back(node_2);
-                }
-    
-                remove_duplicate_nodes(temp_nodes);
-    
-                if(temp_nodes.size() == 4){
-                    go::Vertex temp_quad(temp_nodes);
-                    quads.push_back(temp_quad);
-    
-                    triangles.erase(triangles.begin());
-                    triangles.erase(triangles.begin());
+    for (size_t i = 0; i < triangles.size(); i++) {
+        int n = 0;
+
+        for (size_t j = 0; j < triangles.size(); j++) {
+            if (i != j && have_same_side(triangles[i], triangles[j])) {
+                n++;
+                if (n == 3) {
+                    break;
                 }
             }
         }
-    }
-    else{
-        for(auto&triangle:triangles){
-            go::Node n1 = triangle.vertices[0];
-            go::Node n2 = triangle.vertices[1];
-            go::Node n3 = triangle.vertices[2];
-    
-            go::Node center((n1.pos.x+ n2.pos.x+n3.pos.x)/3,(n1.pos.y+ n2.pos.y+n3.pos.y)/3);
-    
-            go::Node n4((n1.pos.x+n2.pos.x)/2,(n1.pos.y+n2.pos.y)/2);
-            go::Node n5((n2.pos.x+n3.pos.x)/2,(n2.pos.y+n3.pos.y)/2);
-            go::Node n6((n3.pos.x+n1.pos.x)/2,(n3.pos.y+n1.pos.y)/2);
-    
-            std::vector<go::Node> vert1_ns = {n1, n4, center, n6};
-            std::vector<go::Node> vert2_ns = {n4, n2, n5, center};
-            std::vector<go::Node> vert3_ns = {n5, n3, n6, center};
-    
-            go::Vertex vert1(vert1_ns);
-            go::Vertex vert2(vert2_ns);
-            go::Vertex vert3(vert3_ns);
-    
-            quads.push_back(vert1);
-            quads.push_back(vert2);
-            quads.push_back(vert3);
-        }
+
+        count[i] = n;
     }
 
-
-    return quads;
+    return count;
 }
+
+Graph build_mat(std::vector<go::Triangle> triangles)
+{
+    Graph graph(triangles.size());
+
+    for (size_t i = 0; i < triangles.size(); i++) {
+        int n = 0;
+
+        for (size_t j = 0; j < triangles.size(); j++) {
+            if (i != j && have_same_side(triangles[i], triangles[j])) {
+                n++;
+                graph.adj_mat[i][j] = 1;
+                if (n == 3) {
+                    break;
+                }
+            }
+        }
+
+        graph.connection_list[i] = n;
+    }
+
+    return graph;
+}
+
+
+
+//---------------------------------------------------------------
 
 std::vector<go::Vertex> make_quads(std::vector<go::Triangle> &init_triangles){
     std::vector<go::Triangle> triangles = init_triangles;
@@ -341,7 +339,70 @@ std::vector<go::Vertex> make_quads(std::vector<go::Triangle> &init_triangles){
     return quads;
 }
 
+std::vector<go::Vertex> make_quads(std::vector<go::Vertex> &init_triangles){
+    std::vector<go::Vertex> triangles = init_triangles;
+    std::vector<go::Vertex> quads;
 
+    int max_iter = 100;
+    int iter = 0;
+
+    if(triangles.size()%2==0){
+        //łączenie trójkątów w czworokąty
+        while(!triangles.empty() && iter < max_iter){
+            iter++;
+            go::Vertex tr1 = triangles[0];
+            go::Vertex tr2 = triangles[1];
+    
+            if(have_same_side(tr1, tr2)){
+                std::vector<go::Node> temp_nodes;
+                for(auto&node_1: tr1.vertices){
+                    temp_nodes.push_back(node_1);
+                }
+                for(auto&node_2: tr2.vertices){
+                    temp_nodes.push_back(node_2);
+                }
+    
+                remove_duplicate_nodes(temp_nodes);
+    
+                if(temp_nodes.size() == 4){
+                    go::Vertex temp_quad(temp_nodes);
+                    quads.push_back(temp_quad);
+    
+                    triangles.erase(triangles.begin());
+                    triangles.erase(triangles.begin());
+                }
+            }
+        }
+    }
+    else{
+        for(auto&triangle:triangles){
+            go::Node n1 = triangle.vertices[0];
+            go::Node n2 = triangle.vertices[1];
+            go::Node n3 = triangle.vertices[2];
+    
+            go::Node center((n1.pos.x+ n2.pos.x+n3.pos.x)/3,(n1.pos.y+ n2.pos.y+n3.pos.y)/3);
+    
+            go::Node n4((n1.pos.x+n2.pos.x)/2,(n1.pos.y+n2.pos.y)/2);
+            go::Node n5((n2.pos.x+n3.pos.x)/2,(n2.pos.y+n3.pos.y)/2);
+            go::Node n6((n3.pos.x+n1.pos.x)/2,(n3.pos.y+n1.pos.y)/2);
+    
+            std::vector<go::Node> vert1_ns = {n1, n4, center, n6};
+            std::vector<go::Node> vert2_ns = {n4, n2, n5, center};
+            std::vector<go::Node> vert3_ns = {n5, n3, n6, center};
+    
+            go::Vertex vert1(vert1_ns);
+            go::Vertex vert2(vert2_ns);
+            go::Vertex vert3(vert3_ns);
+    
+            quads.push_back(vert1);
+            quads.push_back(vert2);
+            quads.push_back(vert3);
+        }
+    }
+
+
+    return quads;
+}
 
 std::vector<go::Node> creating_nodes(go::Vertex polygon, float spacing){
     std::vector<go::Vertex> triangles = ear_cut_triangulation(polygon);
@@ -593,6 +654,3 @@ std::vector<go::Vertex> create_mesh(go::Vertex polygon, float spacing){
 
     return mesh;
 }
-
-//-----------------Paving algorithm----------------------
-

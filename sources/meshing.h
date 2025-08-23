@@ -10,6 +10,20 @@
 
 #include "geometry.h"
 
+struct Graph{
+    std::vector<std::vector<int>> adj_mat;
+    std::vector<int> connection_list;
+    Graph(int n){
+        adj_mat= std::vector<std::vector<int> >(n, std::vector<int>(n, 0));
+        connection_list.resize(n);
+    }
+
+    void print();
+    void print_clist();
+};
+std::vector<int> count_neighbours(std::vector<go::Triangle> triangles);
+Graph build_mat(std::vector<go::Triangle> triangles);
+
 std::vector<go::Node> add_boundary_nodes_on_edge(go::Segment seg, int N);
 std::vector<go::Node> add_boundary_nodes_on_vertex(go::Vertex shape, float spacing);
 void write_node_ids(std::vector<go::Node> &nodes);

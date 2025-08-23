@@ -31,7 +31,8 @@ int main()
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_TITLE);
     SetTargetFPS(60);
 
-    std::vector<go::Node> polygon_nodes;  
+    std::vector<go::Node> polygon_nodes;
+    std::vector<go::Triangle> triangles;
     std::vector<go::Vertex> mesh;
 
     bool mesh_created = false;
@@ -58,7 +59,11 @@ int main()
         if(IsKeyPressed(KEY_ENTER)){
             mesh_created = true;
             go::Vertex polygon(polygon_nodes);
+            std::vector<go::Node> tr_nodes = creating_nodes(polygon, spacing);
+            triangles = bowyer_watson(tr_nodes);
 
+            Graph gr = build_mat(triangles);
+            gr.print_clist();
             mesh = create_mesh(polygon, spacing);
 
             polygon_nodes.clear();
@@ -69,8 +74,13 @@ int main()
             it.draw();
         }
         
+        /*
         for(auto&element:mesh){
             element.draw();
+        }*/
+
+        for(auto&tr:triangles){
+            tr.draw();
         }
 
         EndDrawing();

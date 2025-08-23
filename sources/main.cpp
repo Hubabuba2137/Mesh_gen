@@ -63,7 +63,7 @@ int main()
             triangles = bowyer_watson(tr_nodes);
 
             Graph gr = build_mat(triangles);
-            gr.print_clist();
+            gr.print_adjList();
             mesh = create_mesh(polygon, spacing);
 
             polygon_nodes.clear();

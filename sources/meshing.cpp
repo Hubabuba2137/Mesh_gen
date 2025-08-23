@@ -226,6 +226,18 @@ void Graph::print_clist()
     }
 }
 
+void Graph::print_adjList()
+{
+    int n = adj_list.size();
+        for (int i = 0; i < n; i++) {
+            std::cout<<i<<": ";
+            for (int j:adj_list[i]) {
+                std::cout<<j<<", ";
+            }
+            std::cout << "\n";
+        }
+}
+
 std::vector<int> count_neighbours(std::vector<go::Triangle> triangles) {
     std::vector<int> count(triangles.size(), 0);
 
@@ -253,17 +265,26 @@ Graph build_mat(std::vector<go::Triangle> triangles)
 
     for (size_t i = 0; i < triangles.size(); i++) {
         int n = 0;
+        std::vector<int> temp_adj_list;
 
         for (size_t j = 0; j < triangles.size(); j++) {
             if (i != j && have_same_side(triangles[i], triangles[j])) {
+                //counting neighbour
                 n++;
+
+                //building adj matrix
                 graph.adj_mat[i][j] = 1;
+
+                //building adj list
+                temp_adj_list.push_back(j);
+
                 if (n == 3) {
                     break;
                 }
             }
         }
-
+        
+        graph.adj_list[i] = temp_adj_list;
         graph.connection_list[i] = n;
     }
 

@@ -13,13 +13,17 @@
 struct Graph{
     std::vector<std::vector<int>> adj_mat;
     std::vector<int> connection_list;
+    std::vector<std::vector<int>> adj_list;
+
     Graph(int n){
-        adj_mat= std::vector<std::vector<int> >(n, std::vector<int>(n, 0));
+        adj_mat = std::vector<std::vector<int> >(n, std::vector<int>(n, 0));
+        adj_list = std::vector<std::vector<int> >(n, std::vector<int>(0, 0));
         connection_list.resize(n);
     }
 
     void print();
     void print_clist();
+    void print_adjList();
 };
 std::vector<int> count_neighbours(std::vector<go::Triangle> triangles);
 Graph build_mat(std::vector<go::Triangle> triangles);

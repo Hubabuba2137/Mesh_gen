@@ -62,8 +62,6 @@ int main()
             std::vector<go::Node> tr_nodes = creating_nodes(polygon, spacing);
             triangles = bowyer_watson(tr_nodes);
 
-            Graph gr = build_mat(triangles);
-            gr.print_adjList();
             mesh = create_mesh(polygon, spacing);
 
             polygon_nodes.clear();
@@ -73,14 +71,9 @@ int main()
         for(auto&it:polygon_nodes){
             it.draw();
         }
-        
-        /*
+    
         for(auto&element:mesh){
             element.draw();
-        }*/
-
-        for(auto&tr:triangles){
-            tr.draw();
         }
 
         EndDrawing();

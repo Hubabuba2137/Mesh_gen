@@ -206,224 +206,250 @@ bool have_same_side(go::Triangle v1, go::Triangle v2){
     return false;
 }
 
-//---------------------------------------------------------------------
-//graph structure o represent triangles connections
-void Graph::print()
-{
-    int n = adj_mat.size();
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                std::cout << adj_mat[i][j] << " ";
-            }
-            std::cout << "\n";
-        }
-}
+// Paste this into meshing.cpp (replace the two existing make_quads overloads)
+// It maximizes triangle pairings into quads via a greedy maximal matching
+// and splits any unpaired triangle into 3 interior quads.
 
-void Graph::print_clist()
-{
-    for(int i=0; i<connection_list.size(); i++){
-        std::cout<<i<<": "<<connection_list[i]<<"\n";
+namespace {
+    using Pair = std::pair<int,int>;
+
+    struct Candidate {
+        int a;
+        int b;
+        int priority; // lower = better (sum of degrees)
+    };
+
+    // --- Angle/shape helpers -------------------------------------------------
+    static inline float dot2D(const go::Node& a, const go::Node& b){ return a.pos.x*b.pos.x + a.pos.y*b.pos.y; }
+    static inline go::Node sub2D(const go::Node& a, const go::Node& b){ return go::Node(a.pos.x-b.pos.x, a.pos.y-b.pos.y); }
+    static inline float len2(const go::Node& v){ return v.pos.x*v.pos.x + v.pos.y*v.pos.y; }
+
+    static inline float angle_between_deg(const go::Node& u, const go::Node& v){
+        const float uu = std::max(1e-12f, len2(u));
+        const float vv = std::max(1e-12f, len2(v));
+        float c = (u.pos.x*v.pos.x + u.pos.y*v.pos.y) / std::sqrt(uu*vv);
+        if(c> 1.f) c = 1.f; if(c<-1.f) c = -1.f;
+        return std::acos(c) * 180.0f / 3.14159265358979323846f;
     }
-}
 
-void Graph::print_adjList()
-{
-    int n = adj_list.size();
-        for (int i = 0; i < n; i++) {
-            std::cout<<i<<": ";
-            for (int j:adj_list[i]) {
-                std::cout<<j<<", ";
-            }
-            std::cout << "\n";
+    static std::vector<go::Node> order_ccw(const std::vector<go::Node>& nodes){
+        // Order points around centroid (CCW)
+        go::Node c(0.f,0.f);
+        for(const auto& n: nodes){ c.pos.x+=n.pos.x; c.pos.y+=n.pos.y; }
+        c.pos.x/=nodes.size(); c.pos.y/=nodes.size();
+        std::vector<std::pair<float,go::Node>> tmp; tmp.reserve(nodes.size());
+        for(const auto& n: nodes){
+            float ang = std::atan2(n.pos.y - c.pos.y, n.pos.x - c.pos.x);
+            tmp.emplace_back(ang, n);
         }
-}
+        std::sort(tmp.begin(), tmp.end(), [](auto& A, auto& B){ return A.first < B.first; });
+        std::vector<go::Node> out; out.reserve(nodes.size());
+        for(auto& p: tmp) out.push_back(p.second);
+        return out;
+    }
 
-std::vector<int> count_neighbours(std::vector<go::Triangle> triangles) {
-    std::vector<int> count(triangles.size(), 0);
+    // lenient shape check: reject quads with nearly collinear triplets (triangle-ish)
+    // Defaults chosen to be permissive: only filter extreme cases
+    static bool quad_shape_ok(const std::vector<go::Node>& nodes,
+                              float min_angle_deg = 6.0f,
+                              float max_angle_deg = 174.0f){
+        if(nodes.size()!=4) return false;
+        auto P = order_ccw(nodes);
+        for(int i=0;i<4;i++){
+            const go::Node& pi = P[i];
+            const go::Node& pp = P[(i+3)&3]; // previous
+            const go::Node& pn = P[(i+1)&3]; // next
+            go::Node a = sub2D(pp, pi);
+            go::Node b = sub2D(pn, pi);
+            float ang = angle_between_deg(a,b);
+            if(!(ang > min_angle_deg && ang < max_angle_deg)) return false;
+        }
+        return true;
+    }
 
-    for (size_t i = 0; i < triangles.size(); i++) {
-        int n = 0;
+    // --- Pairing utilities ---------------------------------------------------
+    // Find the shared edge of two triangles; also return the third vertex of each triangle
+    static bool shared_edge_and_tips(const go::Triangle& t1, const go::Triangle& t2,
+                                     go::Segment& shared,
+                                     go::Node& tip1, go::Node& tip2){
+        // locate shared edge
+        for(const auto& e1: t1.edges){
+            for(const auto& e2: t2.edges){
+                if(same_edge(e1, e2)){
+                    shared = e1; // arbitrary orientation
 
-        for (size_t j = 0; j < triangles.size(); j++) {
-            if (i != j && have_same_side(triangles[i], triangles[j])) {
-                n++;
-                if (n == 3) {
-                    break;
+                    // tip1 is vertex of t1 not on shared
+                    for(const auto& n: t1.points){
+                        if(!is_node_same(n, e1.tab[0]) && !is_node_same(n, e1.tab[1])){
+                            tip1 = n; break;
+                        }
+                    }
+                    // tip2 is vertex of t2 not on shared
+                    for(const auto& n: t2.points){
+                        if(!is_node_same(n, e2.tab[0]) && !is_node_same(n, e2.tab[1])){
+                            tip2 = n; break;
+                        }
+                    }
+                    return true;
                 }
             }
         }
-
-        count[i] = n;
+        return false;
     }
 
-    return count;
-}
-
-Graph build_mat(std::vector<go::Triangle> triangles)
-{
-    Graph graph(triangles.size());
-
-    for (size_t i = 0; i < triangles.size(); i++) {
-        int n = 0;
-        std::vector<int> temp_adj_list;
-
-        for (size_t j = 0; j < triangles.size(); j++) {
-            if (i != j && have_same_side(triangles[i], triangles[j])) {
-                //counting neighbour
-                n++;
-
-                //building adj matrix
-                graph.adj_mat[i][j] = 1;
-
-                //building adj list
-                temp_adj_list.push_back(j);
-
-                if (n == 3) {
-                    break;
+    static std::vector<std::vector<int>> build_adjacency(const std::vector<go::Triangle>& tris){
+        const int n = (int)tris.size();
+        std::vector<std::vector<int>> adj(n);
+        for(int i=0;i<n;i++){
+            for(int j=i+1;j<n;j++){
+                if(have_same_side(tris[i], tris[j])){
+                    adj[i].push_back(j);
+                    adj[j].push_back(i);
                 }
             }
         }
-        
-        graph.adj_list[i] = temp_adj_list;
-        graph.connection_list[i] = n;
+        return adj;
     }
 
-    return graph;
+    static std::vector<Candidate> build_candidates(const std::vector<std::vector<int>>& adj){
+        const int n = (int)adj.size();
+        std::vector<int> deg(n);
+        for(int i=0;i<n;i++) deg[i] = (int)adj[i].size();
+
+        std::vector<Candidate> cands;
+        for(int i=0;i<n;i++){
+            for(int j: adj[i]) if(j>i){
+                cands.push_back({i,j, deg[i]+deg[j]});
+            }
+        }
+        std::sort(cands.begin(), cands.end(), [](const Candidate& A, const Candidate& B){
+            if(A.priority != B.priority) return A.priority < B.priority; // prefer leaves
+            // tie-breaker: lower indices stable
+            if(A.a != B.a) return A.a < B.a;
+            return A.b < B.b;
+        });
+        return cands;
+    }
+
+    static void triangle_into_three_quads(const go::Triangle& tri, std::vector<go::Vertex>& out){
+        const go::Node n1 = tri.points[0];
+        const go::Node n2 = tri.points[1];
+        const go::Node n3 = tri.points[2];
+
+        go::Node center((n1.pos.x + n2.pos.x + n3.pos.x)/3.0f,
+                        (n1.pos.y + n2.pos.y + n3.pos.y)/3.0f);
+
+        go::Node n4((n1.pos.x+n2.pos.x)/2.0f, (n1.pos.y+n2.pos.y)/2.0f);
+        go::Node n5((n2.pos.x+n3.pos.x)/2.0f, (n2.pos.y+n3.pos.y)/2.0f);
+        go::Node n6((n3.pos.x+n1.pos.x)/2.0f, (n3.pos.y+n1.pos.y)/2.0f);
+
+        out.emplace_back(go::Vertex(std::vector<go::Node>{n1, n4, center, n6}));
+        out.emplace_back(go::Vertex(std::vector<go::Node>{n4, n2, n5, center}));
+        out.emplace_back(go::Vertex(std::vector<go::Node>{n5, n3, n6, center}));
+    }
+
+    static void vertex_triangle_into_three_quads(const go::Vertex& tri, std::vector<go::Vertex>& out){
+        const go::Node n1 = tri.vertices[0];
+        const go::Node n2 = tri.vertices[1];
+        const go::Node n3 = tri.vertices[2];
+
+        go::Node center((n1.pos.x + n2.pos.x + n3.pos.x)/3.0f,
+                        (n1.pos.y + n2.pos.y + n3.pos.y)/3.0f);
+
+        go::Node n4((n1.pos.x+n2.pos.x)/2.0f, (n1.pos.y+n2.pos.y)/2.0f);
+        go::Node n5((n2.pos.x+n3.pos.x)/2.0f, (n2.pos.y+n3.pos.y)/2.0f);
+        go::Node n6((n3.pos.x+n1.pos.x)/2.0f, (n3.pos.y+n1.pos.y)/2.0f);
+
+        out.emplace_back(go::Vertex(std::vector<go::Node>{n1, n4, center, n6}));
+        out.emplace_back(go::Vertex(std::vector<go::Node>{n4, n2, n5, center}));
+        out.emplace_back(go::Vertex(std::vector<go::Node>{n5, n3, n6, center}));
+    }
 }
 
 
+std::vector<go::Vertex> make_quads(std::vector<go::Triangle>& input_tris){
+    const int n = (int)input_tris.size();
+    if(n == 0) return {};
 
-//---------------------------------------------------------------
+    // 1) Build dual-graph adjacency and candidate list
+    auto adj = build_adjacency(input_tris);
+    auto cands = build_candidates(adj);
 
-std::vector<go::Vertex> make_quads(std::vector<go::Triangle> &init_triangles){
-    std::vector<go::Triangle> triangles = init_triangles;
-    std::vector<go::Vertex> quads;
+    // 2) Greedy maximal matching over triangle graph
+    std::vector<char> used(n, 0);
+    std::vector<go::Vertex> quads; quads.reserve(n/2 + n); // generous
 
-    int max_iter = 100;
-    int iter = 0;
+    for(const auto& c: cands){
+        if(used[c.a] || used[c.b]) continue;
+        go::Segment shared; go::Node ta, tb;
+        if(!shared_edge_and_tips(input_tris[c.a], input_tris[c.b], shared, ta, tb)) continue;
 
-    if(triangles.size()%2==0){
-        //łączenie trójkątów w czworokąty
-        while(!triangles.empty() && iter < max_iter){
-            iter++;
-            go::Triangle tr1 = triangles[0];
-            go::Triangle tr2 = triangles[1];
-    
-            if(have_same_side(tr1, tr2)){
-                std::vector<go::Node> temp_nodes;
-                for(auto&node_1: tr1.points){
-                    temp_nodes.push_back(node_1);
-                }
-                for(auto&node_2: tr2.points){
-                    temp_nodes.push_back(node_2);
-                }
-    
-                remove_duplicate_nodes(temp_nodes);
-    
-                if(temp_nodes.size() == 4){
-                    go::Vertex temp_quad(temp_nodes);
-                    quads.push_back(temp_quad);
-    
-                    triangles.erase(triangles.begin());
-                    triangles.erase(triangles.begin());
-                }
-            }
-        }
-    }
-    else{
-        for(auto&triangle:triangles){
-            go::Node n1 = triangle.points[0];
-            go::Node n2 = triangle.points[1];
-            go::Node n3 = triangle.points[2];
-    
-            go::Node center((n1.pos.x+ n2.pos.x+n3.pos.x)/3,(n1.pos.y+ n2.pos.y+n3.pos.y)/3);
-    
-            go::Node n4((n1.pos.x+n2.pos.x)/2,(n1.pos.y+n2.pos.y)/2);
-            go::Node n5((n2.pos.x+n3.pos.x)/2,(n2.pos.y+n3.pos.y)/2);
-            go::Node n6((n3.pos.x+n1.pos.x)/2,(n3.pos.y+n1.pos.y)/2);
-    
-            std::vector<go::Node> vert1_ns = {n1, n4, center, n6};
-            std::vector<go::Node> vert2_ns = {n4, n2, n5, center};
-            std::vector<go::Node> vert3_ns = {n5, n3, n6, center};
-    
-            go::Vertex vert1(vert1_ns);
-            go::Vertex vert2(vert2_ns);
-            go::Vertex vert3(vert3_ns);
-    
-            quads.push_back(vert1);
-            quads.push_back(vert2);
-            quads.push_back(vert3);
-        }
+        std::vector<go::Node> nodes = {ta, shared.tab[0], tb, shared.tab[1]};
+        remove_duplicate_nodes(nodes);
+        if(nodes.size() != 4) continue; // degenerate, skip
+
+        // Vertex ctor sorts nodes around centroid and constructs edges for us.
+        // Only accept if quad is not triangle-like
+        if(!quad_shape_ok(nodes)) continue;
+        quads.emplace_back(go::Vertex(order_ccw(nodes)));
+        used[c.a] = used[c.b] = 1;
     }
 
+    // 3) Split any remaining single triangles into three quads each
+    for(int i=0;i<n;i++) if(!used[i]){
+        triangle_into_three_quads(input_tris[i], quads);
+    }
 
     return quads;
 }
 
-std::vector<go::Vertex> make_quads(std::vector<go::Vertex> &init_triangles){
-    std::vector<go::Vertex> triangles = init_triangles;
-    std::vector<go::Vertex> quads;
+std::vector<go::Vertex> make_quads(std::vector<go::Vertex>& input_tris){
+    const int n = (int)input_tris.size();
+    if(n == 0) return {};
 
-    int max_iter = 100;
-    int iter = 0;
-
-    if(triangles.size()%2==0){
-        //łączenie trójkątów w czworokąty
-        while(!triangles.empty() && iter < max_iter){
-            iter++;
-            go::Vertex tr1 = triangles[0];
-            go::Vertex tr2 = triangles[1];
-    
-            if(have_same_side(tr1, tr2)){
-                std::vector<go::Node> temp_nodes;
-                for(auto&node_1: tr1.vertices){
-                    temp_nodes.push_back(node_1);
-                }
-                for(auto&node_2: tr2.vertices){
-                    temp_nodes.push_back(node_2);
-                }
-    
-                remove_duplicate_nodes(temp_nodes);
-    
-                if(temp_nodes.size() == 4){
-                    go::Vertex temp_quad(temp_nodes);
-                    quads.push_back(temp_quad);
-    
-                    triangles.erase(triangles.begin());
-                    triangles.erase(triangles.begin());
-                }
+    // Build adjacency by checking shared sides (Vertex overload exists)
+    std::vector<std::vector<int>> adj(n);
+    for(int i=0;i<n;i++){
+        for(int j=i+1;j<n;j++){
+            if(have_same_side(input_tris[i], input_tris[j])){
+                adj[i].push_back(j);
+                adj[j].push_back(i);
             }
         }
     }
-    else{
-        for(auto&triangle:triangles){
-            go::Node n1 = triangle.vertices[0];
-            go::Node n2 = triangle.vertices[1];
-            go::Node n3 = triangle.vertices[2];
-    
-            go::Node center((n1.pos.x+ n2.pos.x+n3.pos.x)/3,(n1.pos.y+ n2.pos.y+n3.pos.y)/3);
-    
-            go::Node n4((n1.pos.x+n2.pos.x)/2,(n1.pos.y+n2.pos.y)/2);
-            go::Node n5((n2.pos.x+n3.pos.x)/2,(n2.pos.y+n3.pos.y)/2);
-            go::Node n6((n3.pos.x+n1.pos.x)/2,(n3.pos.y+n1.pos.y)/2);
-    
-            std::vector<go::Node> vert1_ns = {n1, n4, center, n6};
-            std::vector<go::Node> vert2_ns = {n4, n2, n5, center};
-            std::vector<go::Node> vert3_ns = {n5, n3, n6, center};
-    
-            go::Vertex vert1(vert1_ns);
-            go::Vertex vert2(vert2_ns);
-            go::Vertex vert3(vert3_ns);
-    
-            quads.push_back(vert1);
-            quads.push_back(vert2);
-            quads.push_back(vert3);
-        }
+
+    // Candidates (sum of degrees priority)
+    std::vector<int> deg(n); for(int i=0;i<n;i++) deg[i] = (int)adj[i].size();
+    std::vector<Candidate> cands;
+    for(int i=0;i<n;i++) for(int j:adj[i]) if(j>i) cands.push_back({i,j,deg[i]+deg[j]});
+    std::sort(cands.begin(), cands.end(), [](const Candidate&a,const Candidate&b){
+        if(a.priority!=b.priority) return a.priority<b.priority;
+        if(a.a!=b.a) return a.a<b.a; return a.b<b.b;
+    });
+
+    std::vector<char> used(n,0);
+    std::vector<go::Vertex> quads; quads.reserve(n/2 + n);
+
+    for(const auto& c: cands){
+        if(used[c.a] || used[c.b]) continue;
+        // Build quad nodes: union of the 2 triangles' vertices
+        std::vector<go::Node> nodes; nodes.reserve(6);
+        for(const auto& v: input_tris[c.a].vertices) nodes.push_back(v);
+        for(const auto& v: input_tris[c.b].vertices) nodes.push_back(v);
+        remove_duplicate_nodes(nodes);
+        if(nodes.size()!=4) continue; // skip degenerate
+        if(!quad_shape_ok(nodes)) continue; // avoid triangle-like quads
+        quads.emplace_back(go::Vertex(order_ccw(nodes)));
+        used[c.a]=used[c.b]=1;
     }
 
+    for(int i=0;i<n;i++) if(!used[i]){
+        vertex_triangle_into_three_quads(input_tris[i], quads);
+    }
 
     return quads;
 }
+
 
 std::vector<go::Node> creating_nodes(go::Vertex polygon, float spacing){
     std::vector<go::Vertex> triangles = ear_cut_triangulation(polygon);

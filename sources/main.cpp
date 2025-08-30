@@ -26,7 +26,7 @@ cmake --build .
 
 int main()
 {
-    float spacing = 100;
+    float spacing = 50;
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_TITLE);
     SetTargetFPS(60);
 
@@ -38,11 +38,13 @@ int main()
     while (!WindowShouldClose())
     {
         BeginDrawing();
+         ClearBackground(BLACK);
 
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
             if(mesh_created){
                 polygon_nodes.clear();
                 triangles.clear();
+
                 mesh_created = false;
             }
 
@@ -53,13 +55,12 @@ int main()
         }
 
         if(IsKeyPressed(KEY_ENTER)){
-            mesh_created = true;
             go::Vertex polygon(polygon_nodes);
-
+            
             triangles = triangulate_mesh(polygon, spacing);
             
             polygon_nodes.clear();
-
+            mesh_created = true;
         }
 
         

@@ -296,14 +296,19 @@ float tr_size(go::Triangle &tr){
     return 0.25*(std::sqrt((a+b+c)*(-a+b+c)*(a-b+c)*(a+b-c)));
 }
 
-float mean_tr_size(std::vector<go::Triangle> &triangles){
-    float mean =0;
+go::Node circumcenter(go::Triangle &tr){
+    float x1 = tr.points[0].pos.x;
+    float y1 = tr.points[0].pos.y;
+    float x2 = tr.points[1].pos.x;
+    float y2 = tr.points[1].pos.y;
+    float x3 = tr.points[2].pos.x;
+    float y3 = tr.points[2].pos.y;
 
-    for(go::Triangle tr:triangles){
-        mean += tr_size(tr);
-    }
+    float x = (-(x1*x1)+(x2*x2)+(x3*x3))/((-2*x1)+(2*x2)+(2*x3));
+    float y = (-(y1*y1)+(y2*y2)+(y3*y3))/((-2*y1)+(2*y2)+(2*y3));
 
-    return mean/static_cast<int>(triangles.size());
+    return go::Node(x, y);
+
 }
 
 std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing){
@@ -313,21 +318,35 @@ std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing){
     std::vector<go::Node> int_nodes = add_boundary_nodes_on_vertex(polygon, spacing);
     //std::cout<< int_nodes.size()<<"\n'";
     
+    //2. inicjalizacja siatki
+    triangles = bowyer_watson(int_nodes);
+    float mean_size = 0.0f; 
+    for(go::Triangle tr:triangles){
+        mean_size += tr_size(tr);
+    }
+    mean_size = mean_size/triangles.size();
 
-    for(int i=0; i<3; i++){
+    constexpr float divider = (4.0 * 1.732)/3 ;
+
+    while(std::sqrt(divider*mean_size) > spacing){
         //2. tworzymy siatkę trójkątów
         triangles = bowyer_watson(int_nodes);
 
-        //4. liczymy średnią wielkość trójkątów
-        float mean_size = mean_tr_size(triangles);
-    
+        //4. liczymy średnią wielkość trójkątów i średnią odległość między circumcenter
+        for(go::Triangle tr:triangles){
+            mean_size += tr_size(tr);
+        }
+        mean_size = mean_size/static_cast<int>(triangles.size());
+        
+        //std::cout<<std::sqrt(divider*mean_size)<<" <-> " << spacing<<"\n";
+
         //3. dodajemy nowe punkty wewnątrz każdego trójkąta
         //int_nodes.resize(triangles.size()-1);
         for(go::Triangle tr:triangles){
             //for now only the center point of a triangle
 
             //4.2 dodajemy trójkąt jeżeli jego wielkość jest większa od średniej
-            if(tr_size(tr) >= mean_size){
+            if(tr_size(tr) > mean_size){
                 
                 float x_p = (tr.points[0].pos.x+tr.points[1].pos.x+tr.points[2].pos.x)/3;
                 float y_p = (tr.points[0].pos.y+tr.points[1].pos.y+tr.points[2].pos.y)/3;

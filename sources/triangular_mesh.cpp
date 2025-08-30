@@ -284,30 +284,62 @@ std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list) {
     return final_triangulation;
 }
 
+float len(go::Node A, go::Node B){
+    return sqrt(pow(B.pos.x-A.pos.x,2)+pow(B.pos.y-A.pos.y,2));
+}
+
+float tr_size(go::Triangle &tr){
+    float a = len(tr.points[0], tr.points[1]);
+    float b = len(tr.points[1], tr.points[2]);
+    float c = len(tr.points[2], tr.points[0]);
+
+    return 0.25*(std::sqrt((a+b+c)*(-a+b+c)*(a-b+c)*(a+b-c)));
+}
+
+float mean_tr_size(std::vector<go::Triangle> &triangles){
+    float mean =0;
+
+    for(go::Triangle tr:triangles){
+        mean += tr_size(tr);
+    }
+
+    return mean/static_cast<int>(triangles.size());
+}
+
 std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing){
     std::vector<go::Triangle> triangles;
 
     //1. interpolujemy punkty na brzegach
     std::vector<go::Node> int_nodes = add_boundary_nodes_on_vertex(polygon, spacing);
     //std::cout<< int_nodes.size()<<"\n'";
+    
 
     for(int i=0; i<3; i++){
         //2. tworzymy siatkę trójkątów
         triangles = bowyer_watson(int_nodes);
+
+        //4. liczymy średnią wielkość trójkątów
+        float mean_size = mean_tr_size(triangles);
     
         //3. dodajemy nowe punkty wewnątrz każdego trójkąta
         //int_nodes.resize(triangles.size()-1);
         for(go::Triangle tr:triangles){
             //for now only the center point of a triangle
-            float x_p = (tr.points[0].pos.x+tr.points[1].pos.x+tr.points[2].pos.x)/3;
-            float y_p = (tr.points[0].pos.y+tr.points[1].pos.y+tr.points[2].pos.y)/3;
-            go::Node center(x_p, y_p);
-            
-            if(polygon.is_node_inside(center)){
-                int_nodes.push_back(center);
+
+            //4.2 dodajemy trójkąt jeżeli jego wielkość jest większa od średniej
+            if(tr_size(tr) >= mean_size){
+                float x_p = (tr.points[0].pos.x+tr.points[1].pos.x+tr.points[2].pos.x)/3;
+                float y_p = (tr.points[0].pos.y+tr.points[1].pos.y+tr.points[2].pos.y)/3;
+                go::Node center(x_p, y_p);
+                            
+                if(polygon.is_node_inside(center)){
+                    int_nodes.push_back(center);
+                }
             }
         }
     }
+
+    filter_triangles(triangles, polygon);
 
     return triangles;
 }

@@ -10,11 +10,10 @@
 
 #include "geometry.h"
 
+/*
+
 std::vector<go::Node> add_boundary_nodes_on_edge(go::Segment seg, int N);
 std::vector<go::Node> add_boundary_nodes_on_vertex(go::Vertex shape, float spacing);
-void write_node_ids(std::vector<go::Node> &nodes);
-void remove_duplicate_nodes(std::vector<go::Node> &nodes);
-
 bool is_node_inside_trian(go::Vertex vert, go::Node node);
 float cross(const Vector2& a, const Vector2& b, const Vector2& c);
 bool is_convex(const Vector2& prev, const Vector2& curr, const Vector2& next);
@@ -41,3 +40,5 @@ std::vector<go::Triangle> bowyer_watson(std::vector<go::Node> &node_list);
 std::vector<go::Vertex> create_mesh(go::Vertex polygon, float spacing);
 
 std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing);
+
+*/

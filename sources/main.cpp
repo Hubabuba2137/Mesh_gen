@@ -1,7 +1,9 @@
 #include "raylib.h"
 
 #include "geometry.h"
-#include "meshing.h"
+//#include "meshing.h"
+
+#include "triangular_mesh.h"
 
 #include <vector>
 
@@ -60,8 +62,7 @@ int main()
             mesh_created = true;
             go::Vertex polygon(polygon_nodes);
 
-            std::vector<go::Node> tr_nodes = creating_nodes(polygon, spacing);
-
+            //std::vector<go::Node> tr_nodes = creating_nodes(polygon, spacing);
             
             triangles = triangulate_mesh(polygon, spacing);
             //mesh = create_mesh(polygon, spacing);

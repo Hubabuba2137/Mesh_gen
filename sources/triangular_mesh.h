@@ -1,0 +1,18 @@
+#pragma once
+#include <vector>
+#include "geometry.h"
+
+bool is_node_same(go::Node n1, go::Node n2);
+void write_node_ids(std::vector<go::Node> &nodes);
+void remove_duplicate_nodes(std::vector<go::Node> &nodes);
+std::vector<go::Node> add_boundary_nodes_on_edge(go::Segment seg, int N);
+std::vector<go::Node> add_boundary_nodes_on_vertex(go::Vertex shape, float spacing);
+go::Triangle super_trian(std::vector<go::Node> &node_list);
+bool inside_circumcircle(go::Triangle &triangle, go::Node &point);
+bool same_triangle(go::Triangle tr1, go::Triangle tr2);
+inline bool same_edge(const go::Segment& e1, const go::Segment& e2);
+bool is_boundary_edge(const go::Segment& edge, const std::vector<go::Triangle>& bad_triangles);
+void filter_triangles(std::vector<go::Triangle> &triangles, go::Vertex &polygon);
+
+std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list);
+std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing);

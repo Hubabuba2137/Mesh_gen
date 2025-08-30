@@ -10,6 +10,8 @@
 #include "geometry.h"
 #include "meshing.h"
 
+/*
+
 void add_new_node(Vector2 worldPos, go::Vertex &polygon){
     go::Node temp_node(worldPos);
     polygon.vertices.push_back(temp_node);
@@ -21,82 +23,6 @@ void pop_node(go::Vertex &polygon){
     {
         polygon.vertices.pop_back();
         polygon.create_edges();
-    }
-}
-
-std::vector<go::Node> add_boundary_nodes_on_edge(go::Segment seg, int N)
-{
-    go::Node A = seg.tab[0];
-    go::Node B = seg.tab[1];
-
-    auto x_u = [&](float u) { return A.pos.x + (B.pos.x - A.pos.x) * u; };
-    auto y_u = [&](float u) { return A.pos.y + (B.pos.y - A.pos.y) * u; };
-
-    std::vector<float> u(N+2);
-    u[0] = 0;
-    for(float i =1; i<=N; i++){
-        u[i] = i/(float)N;
-    }
-
-    std::vector<go::Node> nodes;
-    for(float it:u){
-        go::Node temp(x_u(it),y_u(it));
-
-        nodes.emplace_back(temp);
-    }
-
-    return nodes;
-}
-
-std::vector<go::Node> add_boundary_nodes_on_vertex(go::Vertex shape, float spacing){
-    std::vector<go::Node> nodes;
-    float L=0;
-    for(auto it:shape.edges){
-        L+=it.len();
-    }
-
-    int N_total = (int)(L/spacing);
-    int N = N_total/shape.edges.size();
-
-    for(auto edge:shape.edges){
-
-        std::vector<go::Node> temp_nodes = add_boundary_nodes_on_edge(edge, (int)N);
-
-        for(auto it:temp_nodes){
-            nodes.emplace_back(it);
-        }
-    }
-
-    remove_duplicate_nodes(nodes);
-    
-    write_node_ids(nodes);
-
-    return nodes;
-}
-
-void write_node_ids(std::vector<go::Node> &nodes){
-    for(int i=0; i<nodes.size(); i++){
-        nodes[i].id = i;
-    }
-}
-
-struct NodeHash {
-    std::size_t operator()(const std::pair<float, float>& pos) const {
-        return std::hash<float>()(pos.first) ^ (std::hash<float>()(pos.second) << 1);
-    }
-};
-
-void remove_duplicate_nodes(std::vector<go::Node> &nodes) {
-    std::unordered_set<std::pair<float, float>, NodeHash> unique_positions;
-    auto it = nodes.begin();
-    while (it != nodes.end()) {
-        auto pos = std::make_pair(it->pos.x, it->pos.y);
-        if (unique_positions.find(pos) != unique_positions.end()) {
-            it = nodes.erase(it);
-        } else {
-            unique_positions.insert(pos);
-            ++it;
-        }
     }
 }
 
@@ -711,32 +637,4 @@ std::vector<go::Vertex> create_mesh(go::Vertex polygon, float spacing){
     std::vector<go::Vertex> mesh = make_quads(triangles);
 
     return mesh;
-}
-
-std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing){
-    std::vector<go::Triangle> triangles;
-
-    //1. interpolujemy punkty na brzegach
-    std::vector<go::Node> int_nodes = add_boundary_nodes_on_vertex(polygon, spacing);
-    //std::cout<< int_nodes.size()<<"\n'";
-
-    for(int i=0; i<3; i++){
-        //2. tworzymy siatkę trójkątów
-        triangles = bowyer_watson(int_nodes);
-    
-        //3. dodajemy nowe punkty wewnątrz każdego trójkąta
-        int_nodes.resize(triangles.size()-1);
-        for(go::Triangle tr:triangles){
-            //for now only the center point of a triangle
-            float x_p = (tr.points[0].pos.x+tr.points[1].pos.x+tr.points[2].pos.x)/3;
-            float y_p = (tr.points[0].pos.y+tr.points[1].pos.y+tr.points[2].pos.y)/3;
-            go::Node center(x_p, y_p);
-            
-            if(polygon.is_node_inside(center)){
-                int_nodes.push_back(center);
-            }
-        }
-    }
-
-    return triangles;
-}
+}*/

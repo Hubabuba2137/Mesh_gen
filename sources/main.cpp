@@ -1,7 +1,6 @@
 #include "raylib.h"
 
 #include "geometry.h"
-//#include "meshing.h"
 
 #include "triangular_mesh.h"
 
@@ -11,8 +10,6 @@
 #define SCREEN_HEIGHT (720)
 
 #define WINDOW_TITLE "MESH_GEN"
-
-#define DARK_GRAY CLITERAL(Color){30,30,30,255}
 
 /*
 First time build:
@@ -35,7 +32,6 @@ int main()
 
     std::vector<go::Node> polygon_nodes;
     std::vector<go::Triangle> triangles;
-    std::vector<go::Vertex> mesh;
 
     bool mesh_created = false;
 
@@ -43,12 +39,10 @@ int main()
     {
         BeginDrawing();
 
-        ClearBackground(DARK_GRAY);
-
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
             if(mesh_created){
                 polygon_nodes.clear();
-                mesh.clear();
+                triangles.clear();
                 mesh_created = false;
             }
 
@@ -62,10 +56,7 @@ int main()
             mesh_created = true;
             go::Vertex polygon(polygon_nodes);
 
-            //std::vector<go::Node> tr_nodes = creating_nodes(polygon, spacing);
-            
             triangles = triangulate_mesh(polygon, spacing);
-            //mesh = create_mesh(polygon, spacing);
             
             polygon_nodes.clear();
 

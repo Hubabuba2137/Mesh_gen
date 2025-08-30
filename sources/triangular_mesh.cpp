@@ -328,9 +328,11 @@ std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing){
 
             //4.2 dodajemy trójkąt jeżeli jego wielkość jest większa od średniej
             if(tr_size(tr) >= mean_size){
+                
                 float x_p = (tr.points[0].pos.x+tr.points[1].pos.x+tr.points[2].pos.x)/3;
                 float y_p = (tr.points[0].pos.y+tr.points[1].pos.y+tr.points[2].pos.y)/3;
                 go::Node center(x_p, y_p);
+                
                             
                 if(polygon.is_node_inside(center)){
                     int_nodes.push_back(center);

@@ -10,7 +10,22 @@
 #include "geometry.h"
 #include "meshing.h"
 
-std::vector<go::Node> add_boundary_nodes_on_edge(go::Segment seg, int N){
+void add_new_node(Vector2 worldPos, go::Vertex &polygon){
+    go::Node temp_node(worldPos);
+    polygon.vertices.push_back(temp_node);
+    polygon.create_edges();
+}
+
+void pop_node(go::Vertex &polygon){
+    if(!polygon.vertices.empty())
+    {
+        polygon.vertices.pop_back();
+        polygon.create_edges();
+    }
+}
+
+std::vector<go::Node> add_boundary_nodes_on_edge(go::Segment seg, int N)
+{
     go::Node A = seg.tab[0];
     go::Node B = seg.tab[1];
 
@@ -205,10 +220,6 @@ bool have_same_side(go::Triangle v1, go::Triangle v2){
 
     return false;
 }
-
-// Paste this into meshing.cpp (replace the two existing make_quads overloads)
-// It maximizes triangle pairings into quads via a greedy maximal matching
-// and splits any unpaired triangle into 3 interior quads.
 
 namespace {
     using Pair = std::pair<int,int>;
@@ -700,4 +711,32 @@ std::vector<go::Vertex> create_mesh(go::Vertex polygon, float spacing){
     std::vector<go::Vertex> mesh = make_quads(triangles);
 
     return mesh;
+}
+
+std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing){
+    std::vector<go::Triangle> triangles;
+
+    //1. interpolujemy punkty na brzegach
+    std::vector<go::Node> int_nodes = add_boundary_nodes_on_vertex(polygon, spacing);
+    //std::cout<< int_nodes.size()<<"\n'";
+
+    for(int i=0; i<3; i++){
+        //2. tworzymy siatkę trójkątów
+        triangles = bowyer_watson(int_nodes);
+    
+        //3. dodajemy nowe punkty wewnątrz każdego trójkąta
+        int_nodes.resize(triangles.size()-1);
+        for(go::Triangle tr:triangles){
+            //for now only the center point of a triangle
+            float x_p = (tr.points[0].pos.x+tr.points[1].pos.x+tr.points[2].pos.x)/3;
+            float y_p = (tr.points[0].pos.y+tr.points[1].pos.y+tr.points[2].pos.y)/3;
+            go::Node center(x_p, y_p);
+            
+            if(polygon.is_node_inside(center)){
+                int_nodes.push_back(center);
+            }
+        }
+    }
+
+    return triangles;
 }

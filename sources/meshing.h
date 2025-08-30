@@ -39,3 +39,5 @@ void filter_triangles(std::vector<go::Triangle> &triangles, go::Vertex &polygon)
 std::vector<go::Triangle> bowyer_watson(std::vector<go::Node> &node_list);
 
 std::vector<go::Vertex> create_mesh(go::Vertex polygon, float spacing);
+
+std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing);

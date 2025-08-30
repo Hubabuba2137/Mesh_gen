@@ -27,7 +27,7 @@ cmake --build .
 
 int main()
 {
-    float spacing = 200;
+    float spacing = 100;
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_TITLE);
     SetTargetFPS(60);
 
@@ -59,20 +59,23 @@ int main()
         if(IsKeyPressed(KEY_ENTER)){
             mesh_created = true;
             go::Vertex polygon(polygon_nodes);
+
             std::vector<go::Node> tr_nodes = creating_nodes(polygon, spacing);
-            triangles = bowyer_watson(tr_nodes);
 
-            mesh = create_mesh(polygon, spacing);
-
+            
+            triangles = triangulate_mesh(polygon, spacing);
+            //mesh = create_mesh(polygon, spacing);
+            
             polygon_nodes.clear();
+
         }
 
-
+        
         for(auto&it:polygon_nodes){
             it.draw();
         }
     
-        for(auto&element:mesh){
+        for(auto&element:triangles){
             element.draw();
         }
 

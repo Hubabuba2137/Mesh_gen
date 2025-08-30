@@ -69,12 +69,9 @@ std::vector<go::Node> add_boundary_nodes_on_vertex(go::Vertex shape, float spaci
         L+=it.len();
     }
 
-    int N_total = (int)(L/spacing);
-    int N = N_total/shape.edges.size();
-
     for(auto edge:shape.edges){
-
-        std::vector<go::Node> temp_nodes = add_boundary_nodes_on_edge(edge, (int)N);
+        int N = edge.len()/spacing;
+        std::vector<go::Node> temp_nodes = add_boundary_nodes_on_edge(edge, N);
 
         for(auto it:temp_nodes){
             nodes.emplace_back(it);
@@ -294,21 +291,6 @@ float tr_size(go::Triangle &tr){
     float c = len(tr.points[2], tr.points[0]);
 
     return 0.25*(std::sqrt((a+b+c)*(-a+b+c)*(a-b+c)*(a+b-c)));
-}
-
-go::Node circumcenter(go::Triangle &tr){
-    float x1 = tr.points[0].pos.x;
-    float y1 = tr.points[0].pos.y;
-    float x2 = tr.points[1].pos.x;
-    float y2 = tr.points[1].pos.y;
-    float x3 = tr.points[2].pos.x;
-    float y3 = tr.points[2].pos.y;
-
-    float x = (-(x1*x1)+(x2*x2)+(x3*x3))/((-2*x1)+(2*x2)+(2*x3));
-    float y = (-(y1*y1)+(y2*y2)+(y3*y3))/((-2*y1)+(2*y2)+(2*y3));
-
-    return go::Node(x, y);
-
 }
 
 std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing){

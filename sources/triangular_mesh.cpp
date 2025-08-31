@@ -296,40 +296,36 @@ float tr_size(go::Triangle &tr){
 
 //algorithm taken from:  Owen, Steven. (2000). A Survey of Unstructured Mesh Generation Technology. 7th International Meshing Roundtable. 3.
 //section 2.2.1
-std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing){
-    std::vector<go::Triangle> triangles;
+void triangulate_mesh(go::Vertex polygon, float spacing, std::vector<go::Triangle> &triangles, std::vector<go::Node> &nodes){
 
     //1. interpolujemy punkty na brzegach
-    std::vector<go::Node> int_nodes = add_boundary_nodes_on_vertex(polygon, spacing);
+    nodes = add_boundary_nodes_on_vertex(polygon, spacing);
     //std::cout<< int_nodes.size()<<"\n'";
     
     //2. inicjalizacja siatki
-    triangles = bowyer_watson(int_nodes);
+    triangles = bowyer_watson(nodes);
     float mean_size = 0.0f; 
     for(go::Triangle tr:triangles){
         mean_size += tr_size(tr);
     }
     mean_size = mean_size/triangles.size();
 
-    constexpr float divider = (4.0 * 1.732)/3 ;
+    constexpr float divider = (4.0 * 1.732) / 3;
 
     while(std::sqrt(divider*mean_size) > spacing){
-        //2. tworzymy siatkę trójkątów
-        triangles = bowyer_watson(int_nodes);
-
-        //4. liczymy średnią wielkość trójkątów i średnią odległość między circumcenter
+        //3. liczymy średnią wielkość trójkątów i średnią odległość między circumcenter
         for(go::Triangle tr:triangles){
             mean_size += tr_size(tr);
         }
         mean_size = mean_size/static_cast<int>(triangles.size());
         
         //std::cout<<std::sqrt(divider*mean_size)<<" <-> " << spacing<<"\n";
-
-        //3. dodajemy nowe punkty wewnątrz każdego trójkąta
+        
+        //4. dodajemy nowe punkty wewnątrz każdego trójkąta
         //int_nodes.resize(triangles.size()-1);
         for(go::Triangle tr:triangles){
             //for now only the center point of a triangle
-
+            
             //4.2 dodajemy trójkąt jeżeli jego wielkość jest większa od średniej
             if(tr_size(tr) > mean_size){
                 
@@ -337,15 +333,15 @@ std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing){
                 float y_p = (tr.points[0].pos.y+tr.points[1].pos.y+tr.points[2].pos.y)/3;
                 go::Node center(x_p, y_p);
                 
-                            
                 if(polygon.is_node_inside(center)){
-                    int_nodes.push_back(center);
+                    nodes.push_back(center);
                 }
             }
         }
+
+        //5. triangulacja siatki
+        triangles = bowyer_watson(nodes);
     }
 
     filter_triangles(triangles, polygon);
-
-    return triangles;
 }

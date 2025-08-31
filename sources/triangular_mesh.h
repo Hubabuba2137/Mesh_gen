@@ -15,4 +15,4 @@ bool is_boundary_edge(const go::Segment& edge, const std::vector<go::Triangle>& 
 void filter_triangles(std::vector<go::Triangle> &triangles, go::Vertex &polygon);
 
 std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list);
-std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing);
+void triangulate_mesh(go::Vertex polygon, float spacing, std::vector<go::Triangle> &triangles, std::vector<go::Node> &nodes);

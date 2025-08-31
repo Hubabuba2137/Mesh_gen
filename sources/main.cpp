@@ -31,6 +31,7 @@ int main()
     SetTargetFPS(60);
 
     std::vector<go::Node> polygon_nodes;
+    std::vector<go::Node> glob_nodes;
     std::vector<go::Triangle> triangles;
 
     bool mesh_created = false;
@@ -44,7 +45,7 @@ int main()
             if(mesh_created){
                 polygon_nodes.clear();
                 triangles.clear();
-
+                glob_nodes.clear();
                 mesh_created = false;
             }
 
@@ -57,18 +58,22 @@ int main()
         if(IsKeyPressed(KEY_ENTER)){
             go::Vertex polygon(polygon_nodes);
             
-            triangles = triangulate_mesh(polygon, spacing);
+            triangulate_mesh(polygon, spacing, triangles, glob_nodes);
             
             polygon_nodes.clear();
             mesh_created = true;
         }
 
         
-        for(auto&it:polygon_nodes){
+        for(auto &it:polygon_nodes){
+            it.draw();
+        }
+
+        for(auto &it:glob_nodes){
             it.draw();
         }
     
-        for(auto&element:triangles){
+        for(auto &element:triangles){
             element.draw();
         }
 

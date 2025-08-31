@@ -216,7 +216,7 @@ std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list) {
     std::vector<go::Triangle> bad_triangles;
     std::vector<go::Segment> polygon;
     bad_triangles.reserve(triangulation.capacity() / 4);
-    polygon.reserve(32);
+    polygon.reserve(triangulation.capacity() / 4);
 
     for (go::Node& node : node_list) {
         bad_triangles.clear();
@@ -293,6 +293,9 @@ float tr_size(go::Triangle &tr){
     return 0.25*(std::sqrt((a+b+c)*(-a+b+c)*(a-b+c)*(a+b-c)));
 }
 
+
+//algorithm taken from:  Owen, Steven. (2000). A Survey of Unstructured Mesh Generation Technology. 7th International Meshing Roundtable. 3.
+//section 2.2.1
 std::vector<go::Triangle> triangulate_mesh(go::Vertex polygon, float spacing){
     std::vector<go::Triangle> triangles;
 

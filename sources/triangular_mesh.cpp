@@ -1,7 +1,10 @@
 #include "triangular_mesh.h"
-#include <unordered_set>
 
-bool is_node_same(go::Node n1, go::Node n2){
+#include <unordered_set>
+#include <cmath>
+#include <algorithm>
+
+bool is_node_same(const go::Node &n1, const go::Node &n2){
     float tolerance = 0.1;
 
     if(std::abs(n1.pos.x - n2.pos.x) < tolerance && std::abs(n1.pos.y - n2.pos.y) < tolerance){
@@ -38,7 +41,7 @@ void remove_duplicate_nodes(std::vector<go::Node> &nodes) {
     }
 }
 
-std::vector<go::Node> add_boundary_nodes_on_edge(go::Segment seg, int N)
+std::vector<go::Node> add_boundary_nodes_on_edge(const go::Segment &seg, int N)
 {
     go::Node A = seg.tab[0];
     go::Node B = seg.tab[1];
@@ -62,7 +65,7 @@ std::vector<go::Node> add_boundary_nodes_on_edge(go::Segment seg, int N)
     return nodes;
 }
 
-std::vector<go::Node> add_boundary_nodes_on_vertex(go::Vertex shape, float spacing){
+std::vector<go::Node> add_boundary_nodes_on_vertex(const go::Vertex shape, float spacing){
     std::vector<go::Node> nodes;
     float L=0;
     for(auto it:shape.edges){
@@ -85,7 +88,7 @@ std::vector<go::Node> add_boundary_nodes_on_vertex(go::Vertex shape, float spaci
     return nodes;
 }
 
-go::Triangle super_trian(std::vector<go::Node> &node_list){
+go::Triangle super_trian(const std::vector<go::Node> &node_list){
     float max_x, max_y, min_x, min_y;
     
     max_x = node_list[0].pos.x;
@@ -121,7 +124,7 @@ go::Triangle super_trian(std::vector<go::Node> &node_list){
     return super_triangle;
 }
 
-bool inside_circumcircle(go::Triangle &triangle, go::Node &point){
+bool inside_circumcircle(const go::Triangle &triangle, const go::Node &point){
     Vector2 A = triangle.points[0].pos;
     Vector2 B = triangle.points[1].pos;
     Vector2 C = triangle.points[2].pos;
@@ -152,7 +155,7 @@ bool inside_circumcircle(go::Triangle &triangle, go::Node &point){
     
     return (det * area_ABC > 0);
 }
-bool same_triangle(go::Triangle tr1, go::Triangle tr2) {
+bool same_triangle(const go::Triangle tr1, const go::Triangle tr2) {
     int matches = 0;
     
     for (int i = 0; i < 3; i++) {
@@ -167,12 +170,12 @@ bool same_triangle(go::Triangle tr1, go::Triangle tr2) {
     return matches == 3;
 }
 
-inline bool same_edge(const go::Segment& e1, const go::Segment& e2) {
+inline bool same_edge(const go::Segment &e1, const go::Segment &e2) {
     return (is_node_same(e1.tab[0], e2.tab[0]) && is_node_same(e1.tab[1], e2.tab[1])) ||
            (is_node_same(e1.tab[0], e2.tab[1]) && is_node_same(e1.tab[1], e2.tab[0]));
 }
 
-bool is_boundary_edge(const go::Segment& edge, const std::vector<go::Triangle>& bad_triangles) {
+bool is_boundary_edge(const go::Segment &edge, const std::vector<go::Triangle> &bad_triangles) {
     int count = 0;
     for (const auto& triangle : bad_triangles) {
         for (const auto& tri_edge : triangle.edges) {

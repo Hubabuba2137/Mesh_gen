@@ -1,12 +1,7 @@
 #pragma once
 
 #include <raylib.h>
-#include <iostream>
 #include <vector>
-#include <algorithm>
-#include <string>
-#include <cmath>
-#include <limits>
 
 namespace go{
     struct Node{
@@ -77,7 +72,7 @@ namespace go{
 
         void create_edges(std::vector<Node> nodes);
 
-        bool is_node_inside(Node &node);
+        bool Vertex::is_node_inside(const Node &node);
         void sort_vertices_by_position();
 
         bool ray_intersects_segment(Node point, Segment seg);
@@ -87,7 +82,7 @@ namespace go{
         return (n1.pos.x == n2.pos.x && n1.pos.y == n2.pos.y);
     }
     inline bool operator!=(const Node& n1, const Node& n2) {
-        return (n1.pos.x != n2.pos.x && n1.pos.y != n2.pos.y);
+        return !(n1 == n2);
     }
     
     inline bool operator==(const Triangle& t1, const Triangle& t2) {

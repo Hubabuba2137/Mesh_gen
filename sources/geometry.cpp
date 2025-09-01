@@ -15,20 +15,13 @@ namespace go{
         pos = pos_vec;
     }
 
-    Node::Node(Vector2 pos_in){
-        this->pos = pos_in;
-        this->id=0;
-    }
+    Node::Node(Vector2 pos_in) : pos(pos_in), id(0) {}
+    Node::Node(Vector2 pos_in, int id) : pos(pos_in), id(id) {}
 
-    Node::Node(Vector2 pos_in, int id){
-        this->pos = pos_in;
-        this->id = id;
-    }
-
-    Node::Node(){
-        Vector2 pos_vec{0, 0};
-        this->pos = pos_vec;
-        this->id = 0;
+    Node::Node()
+    {
+        id = 0;
+        pos = {0.0f, 0.0f};
     }
 
     void Node::draw(){
@@ -212,7 +205,7 @@ namespace go{
         return false;
     }
 
-    bool Vertex::is_node_inside(Node &node) {
+    bool Vertex::is_node_inside(const Node &node){
         
         int intersections = 0;
         for (const Segment &seg : this->edges) {

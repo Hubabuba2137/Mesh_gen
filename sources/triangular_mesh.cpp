@@ -308,19 +308,6 @@ namespace msh{
     //to coś zrobić
     void triangulate_mesh(go::Vertex polygon, float spacing, std::vector<go::Triangle> &triangles, std::vector<go::Node> &nodes){
 
-        float max_len = polygon.edges[0].len();
-
-        for(auto& edge: polygon.edges){
-            max_len += edge.len();
-        }
-
-        if(spacing > max_len*polygon.edges.size()){
-            std::cout<<"Polygon too small\n";
-            nodes = polygon.vertices;
-            triangles = bowyer_watson(nodes);
-            return ;
-        }
-
         //1. interpolujemy punkty na brzegach
         nodes = add_boundary_nodes_on_vertex(polygon, spacing);
         //std::cout<< int_nodes.size()<<"\n'";
@@ -335,14 +322,18 @@ namespace msh{
 
         constexpr float divider = (4.0f * 1.732f) / 3.0f;
 
-        while(std::sqrt(divider*mean_size) > spacing){
+        int max_iter = 10;
+        int current_iter = 0;
+        while((std::sqrt(divider*mean_size) > spacing) && (current_iter < max_iter)){
+            current_iter++;
+            std::cout<<current_iter<<"\n";
             //3. liczymy średnią wielkość trójkątów i średnią odległość między circumcenter
             for(go::Triangle tr:triangles){
                 mean_size += tr_size(tr);
             }
             mean_size = mean_size/static_cast<int>(triangles.size());
             
-            std::cout<<std::sqrt(divider*mean_size)<<" <-> " << spacing<<"\n";
+            //std::cout<<std::sqrt(divider*mean_size)<<" <-> " << spacing<<"\n";
             
             //4. dodajemy nowe punkty wewnątrz każdego trójkąta
             //int_nodes.resize(triangles.size()-1);
@@ -367,6 +358,11 @@ namespace msh{
         }
 
         filter_triangles(triangles, polygon);
+
+        if(triangles.empty()){
+            nodes = polygon.vertices;
+            triangles = bowyer_watson(nodes);
+        }
     }
 }
 

@@ -26,7 +26,7 @@ cmake --build .
 
 int main()
 {
-    float spacing = 100;
+    float spacing = 50;
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_TITLE);
     SetTargetFPS(60);
 
@@ -58,10 +58,13 @@ int main()
         if(IsKeyPressed(KEY_ENTER)){
             go::Vertex polygon(polygon_nodes);
             
-            triangulate_mesh(polygon, spacing, triangles, glob_nodes);
+            msh::triangulate_mesh(polygon, spacing, triangles, glob_nodes);
             
             polygon_nodes.clear();
             mesh_created = true;
+
+            std::vector<to_fem::Triangle_ref> ref_triangles = to_fem::convert_to_fem(glob_nodes, triangles);
+            to_fem::print_mesh(glob_nodes, ref_triangles);
         }
 
         

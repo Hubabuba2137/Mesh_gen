@@ -1,7 +1,8 @@
 #include "raylib.h"
 
 #include "geometry.h"
-#include "meshing.h"
+
+#include "triangular_mesh.h"
 
 #include <vector>
 
@@ -9,8 +10,6 @@
 #define SCREEN_HEIGHT (720)
 
 #define WINDOW_TITLE "MESH_GEN"
-
-#define DARK_GRAY CLITERAL(Color){30,30,30,255}
 
 /*
 First time build:
@@ -32,21 +31,21 @@ int main()
     SetTargetFPS(60);
 
     std::vector<go::Node> polygon_nodes;
+    std::vector<go::Node> glob_nodes;
     std::vector<go::Triangle> triangles;
-    std::vector<go::Vertex> mesh;
 
     bool mesh_created = false;
 
     while (!WindowShouldClose())
     {
         BeginDrawing();
-
-        ClearBackground(DARK_GRAY);
+         ClearBackground(BLACK);
 
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
             if(mesh_created){
                 polygon_nodes.clear();
-                mesh.clear();
+                triangles.clear();
+                glob_nodes.clear();
                 mesh_created = false;
             }
 
@@ -57,25 +56,27 @@ int main()
         }
 
         if(IsKeyPressed(KEY_ENTER)){
-            mesh_created = true;
             go::Vertex polygon(polygon_nodes);
-
-            std::vector<go::Node> tr_nodes = creating_nodes(polygon, spacing);
-
             
-            triangles = triangulate_mesh(polygon, spacing);
-            //mesh = create_mesh(polygon, spacing);
+            msh::triangulate_mesh(polygon, spacing, triangles, glob_nodes);
             
             polygon_nodes.clear();
+            mesh_created = true;
 
+            std::vector<to_fem::Triangle_ref> ref_triangles = to_fem::convert_to_fem(glob_nodes, triangles);
+            to_fem::print_mesh(glob_nodes, ref_triangles);
         }
 
         
-        for(auto&it:polygon_nodes){
+        for(auto &it:polygon_nodes){
+            it.draw();
+        }
+
+        for(auto &it:glob_nodes){
             it.draw();
         }
     
-        for(auto&element:triangles){
+        for(auto &element:triangles){
             element.draw();
         }
 

@@ -17,27 +17,31 @@ namespace msh{
     void filter_triangles(std::vector<go::Triangle> &triangles, go::Vertex &polygon);
 
     std::vector<go::Triangle> bowyer_watson(std::vector<go::Node>& node_list);
-    void triangulate_mesh(go::Vertex polygon, float spacing, std::vector<go::Triangle> &triangles, std::vector<go::Node> &nodes);
+
+    std::vector<go::Vertex> triangles_to_quads(std::vector<go::Triangle> &triangles, std::vector<go::Node> &nodes);
+    std::vector<go::Vertex> create_quad_mesh(go::Vertex &polygon, const float &spacing, std::vector<go::Node> &nodes);
 }
 
 
 namespace to_fem{
-    struct Triangle_ref{
-        int node_ids[3];
+    struct Quad_ref{
+        int node_ids[4];
 
-        Triangle_ref(){
+        Quad_ref(){
             node_ids[0] = 0.0f;
             node_ids[1] = 0.0f;
             node_ids[2] = 0.0f;
+            node_ids[3] = 0.0f;
         }
 
-        Triangle_ref(int id1, int id2, int id3){
+        Quad_ref(int id1, int id2, int id3, int id4){
             node_ids[0] = id1;
             node_ids[1] = id2;
             node_ids[2] = id3;
+            node_ids[3] = id4;
         }
     };
 
-    std::vector<Triangle_ref> convert_to_fem(const std::vector<go::Node> &nodes, const std::vector<go::Triangle> &triangles);
-    void print_mesh(const std::vector<go::Node> &nodes, std::vector<Triangle_ref> triangle_refs);
+    std::vector<Quad_ref> convert_to_fem(const std::vector<go::Node> &nodes, const std::vector<go::Vertex> &quad_mesh);
+    void print_mesh(const std::vector<go::Node> &nodes, std::vector<Quad_ref> quad_refs);
 }

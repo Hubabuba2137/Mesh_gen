@@ -19,7 +19,7 @@ int main()
 
     std::vector<go::Node> polygon_nodes;
     std::vector<go::Node> glob_nodes;
-    std::vector<go::Triangle> triangles;
+    std::vector<go::Vertex> mesh;
 
     bool mesh_created = false;
 
@@ -31,7 +31,7 @@ int main()
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
             if(mesh_created){
                 polygon_nodes.clear();
-                triangles.clear();
+                mesh.clear();
                 glob_nodes.clear();
                 mesh_created = false;
             }
@@ -45,13 +45,13 @@ int main()
         if(IsKeyPressed(KEY_ENTER)){
             go::Vertex polygon(polygon_nodes);
             
-            msh::triangulate_mesh(polygon, spacing, triangles, glob_nodes);
+            mesh = msh::create_quad_mesh(polygon, spacing, glob_nodes);
             
             polygon_nodes.clear();
             mesh_created = true;
 
-            std::vector<to_fem::Triangle_ref> ref_triangles = to_fem::convert_to_fem(glob_nodes, triangles);
-            //to_fem::print_mesh(glob_nodes, ref_triangles);
+            std::vector<to_fem::Quad_ref> ref_quads = to_fem::convert_to_fem(glob_nodes, mesh);
+            to_fem::print_mesh(glob_nodes, ref_quads);
         }
 
         
@@ -63,7 +63,7 @@ int main()
             it.draw();
         }
     
-        for(auto &element:triangles){
+        for(auto &element:mesh){
             element.draw();
         }
 

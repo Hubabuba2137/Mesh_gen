@@ -72,7 +72,7 @@ namespace go{
 
         void create_edges(std::vector<Node> nodes);
 
-        bool Vertex::is_node_inside(const Node &node);
+        bool is_node_inside(const Node &node);
         void sort_vertices_by_position();
 
         bool ray_intersects_segment(Node point, Segment seg);

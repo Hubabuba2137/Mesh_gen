@@ -353,14 +353,8 @@ namespace msh{
             mean_size += tr_size(tr);
         }
         mean_size = mean_size/triangles.size();
-
-        constexpr float divider = (4.0f * 1.732f) / 3.0f;
-
-        int max_iter = 2;
-        int current_iter = 0;
-        while((std::sqrt(divider*mean_size) > spacing) && (current_iter < max_iter)){
-            current_iter++;
-            std::cout<<current_iter<<"\n";
+        
+        for(int i=0; i<1; i++){
             //3. liczymy średnią wielkość trójkątów i średnią odległość między circumcenter
             for(go::Triangle tr:triangles){
                 mean_size += tr_size(tr);

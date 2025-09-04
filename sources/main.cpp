@@ -2,7 +2,7 @@
 
 #include "geometry.h"
 
-#include "triangular_mesh.h"
+#include "mesh.h"
 
 #include <vector>
 
@@ -10,19 +10,6 @@
 #define SCREEN_HEIGHT (720)
 
 #define WINDOW_TITLE "MESH_GEN"
-
-/*
-First time build:
-mkdir build
-cd build
-cmake ..
-cmake --build .
-./Debug/mesh_gen.exe
-
-After that:
-cmake --build .
-./Debug/mesh_gen.exe
-*/
 
 int main()
 {
@@ -64,7 +51,7 @@ int main()
             mesh_created = true;
 
             std::vector<to_fem::Triangle_ref> ref_triangles = to_fem::convert_to_fem(glob_nodes, triangles);
-            to_fem::print_mesh(glob_nodes, ref_triangles);
+            //to_fem::print_mesh(glob_nodes, ref_triangles);
         }
 
         

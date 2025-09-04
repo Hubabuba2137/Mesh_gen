@@ -1,4 +1,4 @@
-#include "triangular_mesh.h"
+#include "mesh.h"
 
 #include <unordered_set>
 #include <cmath>
